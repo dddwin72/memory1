@@ -192,6 +192,19 @@ label.field { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: v
 .pill { height: 40px; padding: 0 16px; border-radius: 20px; border: 1px solid var(--line); background: var(--surface); font-size: 14px; font-weight: 500; }
 .pill.danger { color: var(--rec); }
 .pill.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.stt { display: flex; flex-direction: column; gap: 10px; }
+.stt-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.stt-row select {
+  flex: 1; min-width: 0; height: 40px; border-radius: 20px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); padding: 0 12px; font: inherit; font-size: 14px;
+}
+.pill:disabled, .stt-row select:disabled { opacity: .5; }
+.stt-status { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stt-status .bar { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; position: relative; }
+.stt-status .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.stt-status.busy .bar i { width: 30% !important; position: absolute; animation: slide 1.2s ease-in-out infinite; }
+@keyframes slide { from { left: -30%; } to { left: 100%; } }
+.chip { color: var(--accent); font-weight: 600; }
 .confirm { background: var(--rec-soft); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
 
 .toast {
@@ -259,6 +272,19 @@ label.field { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: v
         <button class="big" id="dPlay" aria-label="재생"></button>
         <button class="skip" id="fwd">+15</button>
         <button class="rate" id="rate">1×</button>
+      </div>
+    </div>
+    <div class="stt">
+      <div class="stt-row">
+        <button class="pill primary" id="sttBtn">텍스트로 변환</button>
+        <select id="sttModel" aria-label="변환 방식">
+          <option value="onnx-community/whisper-base">빠르게 · 모델 약 80MB</option>
+          <option value="onnx-community/whisper-small">정확하게 · 모델 약 250MB</option>
+        </select>
+      </div>
+      <div class="stt-status" id="sttStatus" hidden>
+        <span id="sttMsg"></span>
+        <div class="bar"><i id="sttBar"></i></div>
       </div>
     </div>
     <label class="field" for="dNote">받아쓰기 · 메모</label>
@@ -394,6 +420,7 @@ label.field { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: v
       const t = document.createElement('div'); t.className = 'title'; t.textContent = m.title;
       const meta = document.createElement('div'); meta.className = 'meta';
       meta.innerHTML = `<span>${timeOf(m.created)}</span><span>·</span><span>${fmt(m.duration)}</span>`;
+      if (sttJobs.has(m.id)) meta.insertAdjacentHTML('beforeend', '<span>·</span><span class="chip">텍스트 변환 중</span>');
       body.append(t, meta);
       if (m.text) { const s = document.createElement('div'); s.className = 'snippet'; s.textContent = m.text; body.append(s); }
       const bar = document.createElement('div'); bar.className = 'bar'; bar.innerHTML = '<i></i>';
@@ -668,6 +695,7 @@ label.field { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: v
     $('sheetWrap').hidden = false;
     if (playingId !== id) { player.pause(); player.src = urlFor(m); playingId = id; player.currentTime = 0; }
     syncDetailPlayer();
+    renderStt();
     history.pushState({ sheet: 1 }, '');
   }
   function closeDetail(fromPop) {
@@ -774,6 +802,106 @@ label.field { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: v
     render();
     toast('삭제했어요.');
   };
+
+  /* ---------- saved audio → text (Whisper in stt-worker.js, on the device) ---------- */
+  const sttJobs = new Map();
+  let sttWorker = null;
+  let sttQueue = Promise.resolve();
+  try { const v = localStorage.getItem('sttModel'); if (v) $('sttModel').value = v; } catch {}
+  $('sttModel').onchange = () => { try { localStorage.setItem('sttModel', $('sttModel').value); } catch {} };
+
+  function renderStt() {
+    if (!openId) return;
+    const job = sttJobs.get(openId);
+    $('sttBtn').disabled = !!job;
+    $('sttModel').disabled = !!job;
+    $('sttStatus').hidden = !job;
+    if (!job) return;
+    $('sttMsg').textContent = job.msg;
+    $('sttStatus').classList.toggle('busy', job.pct == null);
+    $('sttBar').style.width = job.pct == null ? '' : job.pct + '%';
+  }
+  const setJob = (id, msg, pct = null) => { sttJobs.set(id, { msg, pct }); renderStt(); };
+
+  // Whisper expects 16 kHz mono samples.
+  async function decodeTo16k(blob) {
+    const buf = await blob.arrayBuffer();
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new Ctx();
+    let decoded;
+    try { decoded = await new Promise((res, rej) => ctx.decodeAudioData(buf, res, rej)); }
+    finally { try { ctx.close(); } catch {} }
+    const Off = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    const off = new Off(1, Math.max(1, Math.ceil(decoded.duration * 16000)), 16000);
+    const src = off.createBufferSource();
+    src.buffer = decoded; src.connect(off.destination); src.start();
+    const rendered = await off.startRendering();
+    return rendered.getChannelData(0);
+  }
+
+  function runWorker(audio, model, id) {
+    if (!sttWorker) sttWorker = new Worker('stt-worker.js', { type: 'module' });
+    const w = sttWorker;
+    return new Promise((resolve, reject) => {
+      const done = () => { w.removeEventListener('message', onMsg); w.removeEventListener('error', onErr); };
+      const onMsg = ({ data }) => {
+        if (data.id !== id) return;
+        if (data.type === 'download') {
+          const mb = (n) => Math.round(n / 1048576);
+          setJob(id, `모델 내려받는 중 (처음 한 번만) ${mb(data.loaded)} / ${mb(data.total)}MB`, Math.round((data.loaded / data.total) * 100));
+        } else if (data.type === 'running') {
+          setJob(id, '텍스트로 바꾸는 중… 녹음 길이에 따라 몇 분 걸릴 수 있어요. 창을 닫아도 계속 진행돼요.');
+        } else {
+          done();
+          data.type === 'done' ? resolve(data.text) : reject(new Error(data.message));
+        }
+      };
+      const onErr = (e) => { done(); w.terminate(); sttWorker = null; reject(new Error((e && e.message) || 'worker failed')); };
+      w.addEventListener('message', onMsg);
+      w.addEventListener('error', onErr);
+      w.postMessage({ id, audio, model }, [audio.buffer]);
+    });
+  }
+
+  function transcribe(id) {
+    const m = memos.find((x) => x.id === id);
+    if (!m || sttJobs.has(id)) return;
+    if (!window.Worker || !(window.OfflineAudioContext || window.webkitOfflineAudioContext)) {
+      toast('이 브라우저는 음성 파일 변환을 지원하지 않아요. 최신 Chrome이나 Safari에서 열어 주세요.');
+      return;
+    }
+    const model = $('sttModel').value;
+    setJob(id, '앞의 변환이 끝나길 기다리는 중…');
+    render();
+    sttQueue = sttQueue.then(async () => {
+      try {
+        setJob(id, '오디오 읽는 중…');
+        const audio = await decodeTo16k(m.blob);
+        const text = await runWorker(audio, model, id);
+        if (openId === id) commitEdits();
+        const cur = memos.find((x) => x.id === id);
+        if (!cur) return;
+        if (!text) { toast('알아들을 수 있는 말이 없었어요.'); return; }
+        // Keep whatever is already in the note and add the result below it.
+        cur.text = cur.text && cur.text.trim() ? cur.text.trimEnd() + '\n\n[음성 변환]\n' + text : text;
+        try { await store.put(cur); } catch {}
+        if (openId === id) $('dNote').value = cur.text;
+        toast('텍스트로 변환했어요.');
+      } catch (e) {
+        const msg = String(e && e.message);
+        toast(/fetch|network|load|import|module/i.test(msg)
+          ? '변환 모델을 내려받지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.'
+          : /decode|EncodingError|Unable/i.test(msg)
+            ? '이 오디오 형식은 이 브라우저에서 읽을 수 없어요.'
+            : '변환하지 못했어요. 기기 메모리가 부족하면 "빠르게"를 골라 주세요.');
+      } finally {
+        sttJobs.delete(id);
+        renderStt();
+        render();
+      }
+    });
+  }
+  $('sttBtn').onclick = () => transcribe(openId);
 
   $('q').addEventListener('input', render);
 
