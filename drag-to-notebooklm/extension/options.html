@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>드래그 학습 도우미 설정</title>
+<style>
+  body{font:14px/1.5 "Malgun Gothic",system-ui,sans-serif;width:360px;margin:0;padding:16px;color:#202124}
+  h1{font-size:16px;margin:0 0 12px}
+  label{display:block;margin-bottom:12px}
+  label span{display:block;font-weight:600;margin-bottom:4px}
+  label small{display:block;color:#5f6368}
+  input[type=text],input[type=number],select{width:100%;padding:7px;border:1px solid #dadce0;border-radius:8px;font:inherit;box-sizing:border-box}
+  .chk{display:flex;gap:8px;align-items:center}
+  .chk span{margin:0}
+  #saved{color:#188038;font-weight:600;min-height:20px}
+  ul{padding-left:18px;color:#5f6368;margin:8px 0 0}
+</style>
+</head>
+<body>
+<h1>📒 드래그 → 구글 → NotebookLM</h1>
+<label class="chk"><input type="checkbox" id="showBubble"><span>드래그하면 버튼(🔍 🌐 📒) 띄우기</span></label>
+<label><span>검색어 뒤에 붙일 말</span>
+  <input type="text" id="searchSuffix" placeholder="예:  뜻   또는   meaning">
+  <small>비워 두면 선택한 글 그대로 검색합니다.</small></label>
+<label><span>번역할 언어</span>
+  <select id="translateTo"><option value="ko">한국어</option><option value="en">영어</option><option value="ja">일본어</option><option value="zh-CN">중국어(간체)</option></select></label>
+<label><span>NotebookLM 노트북 주소</span>
+  <input type="text" id="notebookUrl" placeholder="https://notebooklm.google.com/notebook/...">
+  <small>학습용 노트북을 열고 주소창의 주소를 붙여 넣으면 항상 그 노트북에 쌓입니다.</small></label>
+<label><span>기본으로 보낼 검색 결과 수</span><input type="number" id="resultCount" min="1" max="15"></label>
+<label><span>보내는 방식</span>
+  <select id="sendMode"><option value="both">요약 글 + 웹사이트 링크</option><option value="text">요약 글만</option><option value="urls">웹사이트 링크만</option></select></label>
+<label class="chk"><input type="checkbox" id="autoInsert"><span>NotebookLM에서 자동으로 소스 추가</span></label>
+<div id="saved"></div>
+<ul>
+  <li>Alt+G : 선택한 글 구글 검색</li>
+  <li>Alt+N : 검색 후 NotebookLM으로 보내기</li>
+  <li>이미지: 우클릭 → 구글 렌즈</li>
+</ul>
+<script src="options.js"></script>
+</body>
+</html>
