@@ -61,7 +61,18 @@ function buildMenus() {
     chrome.contextMenus.create({ id: "dl-page-nlm", title: "📒 이 페이지를 NotebookLM으로 보내기", contexts: ["page"] });
   });
 }
-chrome.runtime.onInstalled.addListener(buildMenus);
+// 설치/업데이트 직후: 이미 열려 있던 탭에도 바로 적용 (새로고침 없이 드래그 버튼이 뜨도록)
+async function injectIntoOpenTabs() {
+  const tabs = await chrome.tabs.query({ url: ["http://*/*", "https://*/*", "file:///*"] });
+  for (const tab of tabs) {
+    if (/^https:\/\/notebooklm\.google\.com\//.test(tab.url || "")) continue;
+    try {
+      await chrome.scripting.insertCSS({ target: { tabId: tab.id }, files: ["content.css"] });
+      await chrome.scripting.executeScript({ target: { tabId: tab.id, allFrames: true }, files: ["content.js"] });
+    } catch (e) { /* 웹 스토어 등 주입이 금지된 페이지 */ }
+  }
+}
+chrome.runtime.onInstalled.addListener(() => { buildMenus(); injectIntoOpenTabs(); });
 chrome.runtime.onStartup.addListener(buildMenus);
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {

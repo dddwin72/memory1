@@ -2,42 +2,85 @@
   "manifest_version": 3,
   "name": "드래그 → 구글 → NotebookLM",
   "short_name": "DragLearn",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "드래그한 영어 단어·문장·이미지를 구글에서 바로 검색/번역하고, 검색 결과를 NotebookLM 소스로 보냅니다.",
-  "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
-  "action": { "default_title": "드래그 학습 도우미 설정", "default_popup": "options.html" },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "드래그 학습 도우미 설정",
+    "default_popup": "options.html"
+  },
   "options_page": "options.html",
-  "background": { "service_worker": "background.js" },
-  "permissions": ["contextMenus", "storage", "tabs", "clipboardWrite"],
-  "host_permissions": ["https://www.google.com/*", "https://notebooklm.google.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "contextMenus",
+    "storage",
+    "tabs",
+    "clipboardWrite",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "exclude_matches": ["https://notebooklm.google.com/*"],
-      "js": ["content.js"],
-      "css": ["content.css"],
-      "all_frames": false
+      "matches": [
+        "<all_urls>"
+      ],
+      "exclude_matches": [
+        "https://notebooklm.google.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
+      "all_frames": true,
+      "match_about_blank": true
     },
     {
-      "matches": ["https://www.google.com/search*", "https://www.google.co.kr/search*"],
-      "js": ["google.js"],
-      "css": ["content.css"],
+      "matches": [
+        "https://www.google.com/search*",
+        "https://www.google.co.kr/search*"
+      ],
+      "js": [
+        "google.js"
+      ],
+      "css": [
+        "content.css"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://notebooklm.google.com/*"],
-      "js": ["notebooklm.js"],
-      "css": ["content.css"],
+      "matches": [
+        "https://notebooklm.google.com/*"
+      ],
+      "js": [
+        "notebooklm.js"
+      ],
+      "css": [
+        "content.css"
+      ],
       "run_at": "document_idle"
     }
   ],
   "commands": {
     "search-selection": {
-      "suggested_key": { "default": "Alt+G" },
+      "suggested_key": {
+        "default": "Alt+G"
+      },
       "description": "선택한 텍스트를 구글에서 검색"
     },
     "send-selection-notebooklm": {
-      "suggested_key": { "default": "Alt+N" },
+      "suggested_key": {
+        "default": "Alt+N"
+      },
       "description": "선택한 텍스트를 검색 후 NotebookLM으로 보내기"
     }
   }

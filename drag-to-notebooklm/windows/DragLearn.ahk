@@ -46,7 +46,7 @@ AddBtn(label, kind, w) {
     c.OnEvent("Click", (*) => Act(kind))
 }
 
-global downX := 0, downY := 0
+global downX := 0, downY := 0, lastUp := 0, lastUpX := 0, lastUpY := 0
 
 ~LButton:: {
     global downX, downY
@@ -62,7 +62,10 @@ global downX := 0, downY := 0
     if (win = bar.Hwnd)
         return
     dragged := Abs(x - downX) > 12 || Abs(y - downY) > 12
-    dbl := (A_PriorHotkey = "~LButton Up" && A_TimeSincePriorHotkey < 450)   ; 더블클릭 = 단어 선택
+    ; 더블클릭 = 단어 선택 (같은 자리에서 0.45초 안에 두 번 놓음)
+    global lastUp, lastUpX, lastUpY
+    dbl := (A_TickCount - lastUp < 450) && Abs(x - lastUpX) < 6 && Abs(y - lastUpY) < 6
+    lastUp := A_TickCount, lastUpX := x, lastUpY := y
     if !(dragged || dbl)
         return
     try exe := WinGetProcessName("A")

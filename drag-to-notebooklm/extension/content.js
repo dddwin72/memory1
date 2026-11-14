@@ -1,6 +1,8 @@
 // 모든 웹페이지: 드래그하면 작은 버튼(말풍선)을 띄움
 (() => {
-  if (window.top !== window || window.__dragLearnLoaded) return;
+  if (window.__dragLearnLoaded) return;
+  // 광고 같은 아주 작은 프레임은 건너뜀
+  if (window.top !== window && (window.innerWidth < 250 || window.innerHeight < 120)) return;
   window.__dragLearnLoaded = true;
 
   let settings = { showBubble: true };
