@@ -37,7 +37,7 @@ def ensure_skillspector() -> str:
     if os.path.exists(uv):
         subprocess.run(
             [uv, "tool", "install", "--python", "3.13",
-             "git+https://github.com/NVIDIA/skillspector.git"],
+             "skillspector[mcp] @ git+https://github.com/NVIDIA/skillspector.git"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=600,
         )
     exe = shutil.which("skillspector") or os.path.expanduser("~/.local/bin/skillspector")

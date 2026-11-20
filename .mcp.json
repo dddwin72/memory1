@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "skillspector": {
+      "type": "stdio",
+      "command": "skillspector",
+      "args": ["mcp"]
+    }
+  }
+}
