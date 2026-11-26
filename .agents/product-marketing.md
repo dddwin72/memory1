@@ -1,6 +1,6 @@
 # Product Marketing Context
 
-**Document version:** v1
+**Document version:** v2
 **Last updated:** 2026-11-26
 
 > 이 문서는 아직 고객 검증 전의 **가설 초안**입니다. `[가설]` 표시가 붙은 항목은 customer-research / competitor-profiling 단계에서 실제 자료로 확인하거나 고칩니다. 지어낸 고객 인용이나 실적은 넣지 않았습니다.
@@ -13,7 +13,7 @@
 **Business model:** 월 구독 (약정 없이 월 단위). 가격은 pricing 단계에서 확정. 작업 가설은 월 15만~20만원.
 
 ## Target Audience
-**Target companies:** 1인~5인 규모의 예약형 동네 매장. 미용실, 네일·속눈썹샵, 필라테스·PT 스튜디오 [가설: 첫 업종 1개로 좁힐 것]
+**Target companies:** 1인~5인 규모의 필라테스·PT 스튜디오 [가설: 1차 조사 기반 추천, 대표 확인 및 인터뷰로 검증 필요]. 미용실·네일은 경쟁이 더 심해 2순위.
 **Decision-makers:** 매장 사장님 (직접 시술·수업하며 마케팅까지 혼자 하는 사람)
 **Primary use case:** 꾸준히 올려야 노출되는 블로그·플레이스·인스타를 바빠서 못 올리는 문제
 **Jobs to be done:**
@@ -38,15 +38,18 @@ B2C에 가까운 1인 의사결정 구조라 페르소나는 사장님 한 명. 
 **Emotional tension:** "옆 가게는 블로그에 매일 뜨는데 우리만 뒤처지는 것 같다"
 
 ## Competitive Landscape
-**Direct:** 블로그·플레이스 관리 대행사 — competitor-profiling 단계에서 실제 업체·가격 조사 예정
-**Secondary:** 크몽 등 프리랜서 건당 원고 — 일회성이고 매장 맥락을 모름 [가설]
+**Direct:** 블로그·플레이스 관리 대행사 — 필라테스 월 10건 패키지 33만원, 상위노출 보장형 70만~200만원 (판매자 공개가, 2026-11-26). 불만은 "돈만 나가고 연락·유입이 없다" [신뢰도 낮음]
+**Secondary:** 크몽 등 건당 원고 — 1건 5천~5만원 (2026-11-26). 싸지만 매장 맥락을 모르고 일회성 [가설]
+자세한 근거: `.agents/research/2026-11-26-online-signal.md`
 **Indirect:** 사장님이 직접 작성 / ChatGPT를 직접 사용 — 시간은 여전히 듦
 
 ## Differentiation
 **Key differentiators:** [가설, 검증 필요]
 - 사장님이 할 일은 "사진 보내기"뿐인 작업 방식
 - 매달 성과 리포트로 비용 대비 결과를 보여줌
-- AI로 원가를 낮춰 대행사보다 낮은 월 가격
+- 글+플레이스 소식+리뷰 답글+월간 리포트를 묶은 월 가격이 월 10건 패키지(33만원)보다 낮음
+- 트래픽 조작·허위 리뷰를 하지 않음 (플레이스 정지·법규 위반 위험을 피함)
+- 건당 원고는 1만원대까지 내려가 있으므로 '글만 써주기'로는 경쟁하지 않음
 **How we do it differently:** 에이전트가 매장별 말투·시술 정보를 기억하고 꾸준히 작성
 **Why customers choose us:** 고객 인터뷰 후 작성
 
@@ -81,7 +84,7 @@ B2C에 가까운 1인 의사결정 구조라 페르소나는 사장님 한 명. 
 아직 없음. 첫 고객 3~5곳의 결과를 사례로 만드는 것이 초기 목표.
 
 ## Goals
-**Business goal:** 월 순이익 500만원 (세전 기준 [확인 필요])
+**Business goal:** 월 순이익 500만원 (세전 기준, 대표 확인 2026-11-26)
 **Conversion action:** 무료 체험 신청 또는 상담 신청
 **Current metrics:** 0 (시작 전)
 
@@ -97,6 +100,7 @@ B2C에 가까운 1인 의사결정 구조라 페르소나는 사장님 한 명. 
 
 ## Operating Model (AI 에이전트 운영 구조)
 **Agent may:** 조사, 원고·게시물·리뷰 답글 초안 작성, 일정 관리, 리포트 작성, 문의 답변 초안
+**Never (승인 여부와 관계없이):** 허위 리뷰 작성, 트래픽·순위 조작, 대가를 밝히지 않은 체험단 글
 **Agent may not (without approval):** 고객 계정에 발행, 돈이 나가는 결정(광고비, 도구 결제), 가격·계약 조건 변경, 고객에게 처음 연락
 **사람이 맡는 일:** 사업자등록·계좌·결제 플랫폼 가입, 최종 승인, 법적 책임
 
@@ -104,9 +108,11 @@ B2C에 가까운 1인 의사결정 구조라 페르소나는 사장님 한 명. 
 *Decisions and tested lessons. Newest first. Keep it to about 20 active entries.*
 | Date | Learning | Evidence | Applies to | Status |
 |------|----------|----------|------------|--------|
-| 2026-11-26 | 목표는 매출이 아니라 월 순이익 500만원 | 대표 결정 | pricing, marketing-plan | active |
+| 2026-11-26 | 건당 원고 시장은 1만원대까지 내려가 있어 '글 써주기' 단독 상품은 경쟁력 없음 | 크몽 판매자 가격 여러 곳 (1차 조사) | offers, pricing | watch |
+| 2026-11-26 | 목표는 매출이 아니라 월 순이익 500만원 (세전) | 대표 결정 | pricing, marketing-plan | active |
 | 2026-11-26 | 사업 모델은 AI 대행 구독 서비스(소상공인 콘텐츠)로 시작 | 3개 후보 중 목표 도달 속도로 선택 | 전체 | active |
 
 ## Changelog
 *Newest first. One line per revision: what changed and why.*
+- v2 (2026-11-26) — 1차 온라인 조사 반영: 경쟁 가격(Competitive Landscape), 차별점 재정의, 첫 업종을 필라테스·PT로 좁힘(가설), 금지 행위 추가.
 - v1 (2026-11-26) — Initial context. AI 대행 구독 모델, 순이익 500만원 목표 기준 가설 초안.
