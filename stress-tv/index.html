@@ -150,6 +150,34 @@ label.f{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:70
 input[type=text]{font:inherit;font-size:18px;font-weight:700;padding:10px 12px;border-radius:4px;border:2px solid #000;background:var(--white);color:var(--ink)}
 .file{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border:2px dashed var(--yellow);border-radius:4px;color:var(--yellow);font-weight:900;font-size:15px;cursor:pointer;text-align:center}
 .file input{position:absolute;width:1px;height:1px;opacity:0}
+.ai{background:var(--panel);border:2px solid #000;box-shadow:0 6px 0 #000;border-radius:6px}
+.ai summary{cursor:pointer;padding:14px 16px;display:flex;flex-direction:column;gap:2px;list-style:none}
+.ai summary::-webkit-details-marker{display:none}
+.ai summary b{font-family:var(--disp);font-weight:400;font-size:20px;color:var(--cyan)}
+.ai summary b:after{content:" ▾";font-size:14px}
+.ai[open] summary b:after{content:" ▴"}
+.ai summary span{font-size:13px;color:var(--muted)}
+.aiBody{display:flex;flex-direction:column;gap:12px;padding:0 16px 16px}
+.aiRow{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end}
+.aiRow>*{min-width:0}
+.ai select,.ai input[type=password],.ai input[type=text]{font:inherit;font-size:15px;font-weight:700;padding:9px 10px;border-radius:4px;border:2px solid #000;background:var(--white);color:var(--ink);width:100%;box-sizing:border-box}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.chk input{width:18px;height:18px;accent-color:var(--cyan)}
+.go.ai-go{background:var(--cyan);color:#000;font-size:20px;padding:12px}
+.go:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:0 6px 0 #000}
+.aiStatus{margin:0;font-size:14px;font-weight:700;min-height:1.4em;line-height:1.45}
+.aiStatus.busy{color:var(--yellow)}.aiStatus.ok{color:#6ee787}.aiStatus.err{color:#ff8a9b}
+.aiStatus.busy:before{content:"";display:inline-block;width:12px;height:12px;margin-right:8px;border:3px solid var(--yellow);border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;background:var(--panel2);color:var(--white);border:2px solid transparent;border-radius:20px;padding:7px 10px;font-size:13px;font-weight:700}
+.seg button[aria-pressed=true]{background:var(--cyan);color:#000;border-color:#000}
+.ai hr{border:0;border-top:1px dashed var(--panel2);margin:4px 0;width:100%}
+.ai h3{margin:0;font-size:15px;font-weight:900}
+.steps{margin:0;padding-left:20px;font-size:13px;color:var(--muted);line-height:1.6}
+.ai textarea{font:12px/1.5 var(--mono);background:#0b1026;color:var(--muted);border:1px solid var(--panel2);border-radius:4px;padding:8px;resize:vertical;width:100%;box-sizing:border-box}
+.go.alt.sm{font-size:16px;padding:12px}
+@media (max-width:520px){.aiRow{grid-template-columns:1fr}}
 .sl{display:grid;grid-template-columns:44px 1fr;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
 input[type=range]{width:100%;accent-color:var(--yellow)}
 .venues{display:flex;flex-wrap:wrap;gap:6px}
@@ -268,6 +296,29 @@ kbd{font-family:var(--mono);background:var(--white);color:#000;border-radius:3px
         <div class="sl"><span>상하</span><input type="range" id="oy" min="-1" max="1" step="0.01" value="0" aria-label="상하 위치"></div>
       </div>
     </div>
+    <details class="ai" id="aiBox">
+      <summary><b>AI 괴물 얼굴 만들기</b><span>사진 속 인물을 그대로 닮은 괴물 얼굴을 이미지 AI로 새로 그립니다</span></summary>
+      <div class="aiBody">
+        <div class="aiRow">
+          <label class="f" for="aiProv">AI 서비스
+            <select id="aiProv"><option value="gemini">Google Gemini</option><option value="openai">OpenAI</option></select></label>
+          <label class="f" for="aiModel">모델
+            <input type="text" id="aiModel" spellcheck="false" autocomplete="off"></label>
+        </div>
+        <label class="f" for="aiKey">API 키
+          <input type="password" id="aiKey" autocomplete="off" spellcheck="false" placeholder="본인 API 키를 붙여넣으세요"></label>
+        <label class="chk" for="aiRemember"><input type="checkbox" id="aiRemember">이 기기에 키 기억하기</label>
+        <button class="go ai-go" id="aiGen" disabled>AI로 괴물 얼굴 만들기</button>
+        <p class="aiStatus" id="aiStatus" role="status" aria-live="polite">먼저 위에서 얼굴 사진을 올리고 API 키를 넣으세요.</p>
+        <div class="seg" id="aiSeg" hidden><button id="segOrig" data-src="orig" aria-pressed="false">원본 사진 쓰기</button><button id="segAi" data-src="ai" aria-pressed="true">AI 괴물 얼굴 쓰기</button></div>
+        <p class="note">버튼을 누르면 사진이 선택한 AI 서비스로 전송되고, 그 서비스의 이미지 요금이 부과됩니다. 키는 이 브라우저에만 보관되며 그 AI 서비스 말고는 어디에도 보내지 않습니다. claude.ai 안에서 열면 보안 정책 때문에 외부 호출이 막히므로, 자동 생성은 GitHub Pages 주소나 내려받은 파일로 열었을 때 동작합니다.</p>
+        <hr>
+        <h3>키 없이 하는 방법 (어디서나 동작)</h3>
+        <ol class="steps"><li>아래 버튼으로 프롬프트를 복사합니다.</li><li>Gemini 또는 ChatGPT 앱에 얼굴 사진과 프롬프트를 함께 넣어 이미지를 만듭니다.</li><li>만들어진 이미지를 저장해서 여기에 올립니다.</li></ol>
+        <div class="aiRow"><button class="go alt sm" id="aiCopy">프롬프트 복사</button><label class="file" for="aiUp">AI 결과 이미지 올리기<input type="file" id="aiUp" accept="image/*"></label></div>
+        <textarea id="aiPrompt" rows="4" readonly aria-label="AI 프롬프트"></textarea>
+      </div>
+    </details>
     <div>
       <label class="f" style="margin-bottom:6px">시작 경기장 (라운드마다 장소가 바뀝니다)</label>
       <div class="venues" id="venueList"></div>
@@ -280,7 +331,7 @@ kbd{font-family:var(--mono);background:var(--white);color:#000;border-radius:3px
       <div><b>난이도: 지옥</b>멈추면 괴물이 회복하고, 같은 공격 3연타는 읽히고, 가짜 공격과 분노 모드도 있습니다</div>
     </div>
     <button class="go" id="btnStart">생중계 시작 ▶</button>
-    <p class="note">사진은 이 기기의 브라우저 안에서만 쓰이고 어디로도 전송되거나 저장되지 않습니다.</p>
+    <p class="note">사진은 이 기기의 브라우저 안에서만 쓰이고 저장되지 않습니다. "AI로 괴물 얼굴 만들기"를 누를 때만 선택한 AI 서비스로 전송됩니다.</p>
   </div>
 </div>
 
@@ -395,7 +446,7 @@ const EYE_L=[184,220],EYE_R=[328,220],MOUTH=[256,372],NOSE=[256,300];
 const faceBase=document.createElement('canvas');faceBase.width=faceBase.height=FACE;
 const faceCv=document.createElement('canvas');faceCv.width=faceCv.height=FACE;const fctx=faceCv.getContext('2d');
 const faceTex=new THREE.CanvasTexture(faceCv);faceTex.anisotropy=4;
-let photo=null;const crop={z:1.2,x:0,y:0};
+let photo=null,photoOrig=null,photoAI=null,photoIsAI=false;const crop={z:1.2,x:0,y:0};
 function drawDefaultFace(c){c.save();c.fillStyle='#fff';[EYE_L,EYE_R].forEach(e=>{c.beginPath();c.ellipse(e[0],e[1],44,36,0,0,TAU);c.fill();});
   c.fillStyle='#111';[EYE_L,EYE_R].forEach(e=>{c.beginPath();c.arc(e[0]+6,e[1]+6,16,0,TAU);c.fill();});
   c.strokeStyle='#1d3b0b';c.lineWidth=18;c.lineCap='round';c.beginPath();c.moveTo(130,160);c.lineTo(230,190);c.moveTo(382,160);c.lineTo(282,190);c.stroke();
@@ -406,7 +457,7 @@ let skinHex=MSKIN;function setSkin(h){skinHex=h;drawFaceBase();renderFace();}
 function drawFaceBase(){const c=faceBase.getContext('2d');c.globalCompositeOperation='source-over';c.fillStyle=skinHex;c.fillRect(0,0,FACE,FACE);
   if(photo){const s=Math.max(FACE/photo.width,FACE/photo.height)*crop.z;const w=photo.width*s,h=photo.height*s;
     c.drawImage(photo,(FACE-w)/2+crop.x*FACE*.5,(FACE-h)/2+crop.y*FACE*.5,w,h);
-    c.globalCompositeOperation='multiply';c.fillStyle='rgb(205,238,175)';c.fillRect(0,0,FACE,FACE);c.globalCompositeOperation='source-over';}
+    if(!photoIsAI){c.globalCompositeOperation='multiply';c.fillStyle='rgb(205,238,175)';c.fillRect(0,0,FACE,FACE);c.globalCompositeOperation='source-over';}}
   else drawDefaultFace(c);
   const rgb=[1,3,5].map(i=>parseInt(skinHex.substr(i,2),16)).join(',');const g=c.createRadialGradient(256,250,150,256,256,262);g.addColorStop(0,`rgba(${rgb},0)`);g.addColorStop(.75,`rgba(${rgb},.85)`);g.addColorStop(1,`rgba(${rgb},1)`);c.fillStyle=g;c.fillRect(0,0,FACE,FACE);}
 let marks=[],faceFx={x:false,spiral:false};
@@ -431,7 +482,69 @@ function drawPreview(){drawFaceBase();pvc.clearRect(0,0,400,400);pvc.save();pvc.
   pvc.setLineDash([8,6]);pvc.strokeStyle='rgba(255,210,63,.95)';pvc.lineWidth=3;const k=400/FACE;
   [EYE_L,EYE_R].forEach(e=>{pvc.beginPath();pvc.ellipse(e[0]*k,e[1]*k,30,20,0,0,TAU);pvc.stroke();});
   pvc.beginPath();pvc.moveTo((MOUTH[0]-55)*k,MOUTH[1]*k);pvc.lineTo((MOUTH[0]+55)*k,MOUTH[1]*k);pvc.stroke();pvc.restore();if(G.state==='menu')renderFace();}
-$('ph').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{photo=img;crop.z=1.2;crop.x=0;crop.y=0;$('zm').value=1.2;$('ox').value=0;$('oy').value=0;drawPreview();};img.src=r.result;};r.readAsDataURL(f);});
+function readImage(file){return new Promise((res,rej)=>{const r=new FileReader();r.onerror=()=>rej(r.error);r.onload=()=>loadImg(r.result).then(res,rej);r.readAsDataURL(file);});}
+function loadImg(src){return new Promise((res,rej)=>{const img=new Image();img.onload=()=>res(img);img.onerror=()=>rej(new Error('image'));img.src=src;});}
+function useSource(src){const ai=src==='ai'&&photoAI;photo=ai?photoAI:photoOrig;photoIsAI=!!ai;crop.z=ai?1:1.2;crop.x=0;crop.y=0;$('zm').value=crop.z;$('ox').value=0;$('oy').value=0;
+  $('segAi').setAttribute('aria-pressed',!!ai);$('segOrig').setAttribute('aria-pressed',!ai);$('aiSeg').hidden=!(photoAI&&photoOrig);drawPreview();}
+$('ph').addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{photoOrig=await readImage(f);photoAI=null;useSource('orig');aiReady();}catch(err){aiStatus('사진을 읽지 못했습니다. JPG나 PNG 파일을 골라 주세요.','err');}});
+
+/* ================= AI MONSTER FACE ================= */
+const AI_DEFAULT={gemini:'gemini-2.5-flash-image',openai:'gpt-image-1'};
+const AI_PROMPT="Turn the person in this photo into a funny cartoon monster version of themselves for a lighthearted comedy game. "+
+ "It must stay clearly recognizable as the SAME person: keep their face shape, eyes, eyebrows, nose, mouth, skin details, hairstyle, glasses and any other distinctive features. "+
+ "Give them bright lime-green monster skin (#79C043), slightly pointy ears and a goofy, grumpy expression. Do not add horns, hats or text. "+
+ "Front-facing portrait, head centered and filling about 75% of a square frame, eyes level about 43% from the top. "+
+ "Plain solid green (#79C043) background. Stylized 3D cartoon render with soft studio lighting. Nothing scary or gory.";
+$('aiPrompt').value=AI_PROMPT;
+const AIK='stv.ai';let aiCsp=false,aiBusy=false;
+document.addEventListener('securitypolicyviolation',e=>{if(/googleapis|openai/.test(e.blockedURI||''))aiCsp=true;});
+function aiStatus(t,cls){const el=$('aiStatus');el.textContent=t;el.className='aiStatus'+(cls?' '+cls:'');}
+function aiLoad(){try{const v=JSON.parse(localStorage.getItem(AIK)||'{}');if(v.prov)$('aiProv').value=v.prov;$('aiModel').value=v.model||AI_DEFAULT[$('aiProv').value];if(v.key){$('aiKey').value=v.key;$('aiRemember').checked=true;}}catch(e){$('aiModel').value=AI_DEFAULT.gemini;}}
+function aiSave(){try{const v={prov:$('aiProv').value,model:$('aiModel').value.trim()};if($('aiRemember').checked)v.key=$('aiKey').value.trim();localStorage.setItem(AIK,JSON.stringify(v));}catch(e){}}
+function aiReady(){$('aiGen').disabled=aiBusy||!photoOrig||!$('aiKey').value.trim();
+  if(!aiBusy&&!photoAI)aiStatus(!photoOrig?'먼저 위에서 얼굴 사진을 올리세요.':!$('aiKey').value.trim()?'API 키를 넣으면 버튼이 켜집니다.':'준비 완료. 버튼을 누르면 10~40초 정도 걸립니다.');}
+$('aiProv').addEventListener('change',()=>{$('aiModel').value=AI_DEFAULT[$('aiProv').value];$('aiKey').placeholder=$('aiProv').value==='gemini'?'Google AI Studio 키 (AIza...)':'OpenAI 키 (sk-...)';aiSave();aiReady();});
+['aiModel','aiKey'].forEach(id=>$(id).addEventListener('input',()=>{aiSave();aiReady();}));
+$('aiRemember').addEventListener('change',aiSave);
+$('aiSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(b)useSource(b.dataset.src);});
+function photoBlob(img,max){const s=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
+  c.getContext('2d').drawImage(img,0,0,c.width,c.height);return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('blob')),'image/jpeg',.9));}
+function blobB64(b){return new Promise((res,rej)=>{const r=new FileReader();r.onerror=()=>rej(r.error);r.onload=()=>res(String(r.result).split(',')[1]);r.readAsDataURL(b);});}
+function apiErr(status,msg){const e=new Error(msg||'');e.status=status;return e;}
+async function genGemini(key,model,blob,signal){
+  const body={contents:[{role:'user',parts:[{text:AI_PROMPT},{inline_data:{mime_type:'image/jpeg',data:await blobB64(blob)}}]}],generationConfig:{responseModalities:['TEXT','IMAGE']}};
+  const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent',{method:'POST',signal,headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body)});
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw apiErr(r.status,j.error&&j.error.message);
+  if(j.promptFeedback&&j.promptFeedback.blockReason){const e=apiErr(0,j.promptFeedback.blockReason);e.refused=true;throw e;}
+  const c=j.candidates&&j.candidates[0];const parts=(c&&c.content&&c.content.parts)||[];const im=parts.find(p=>p.inlineData||p.inline_data);
+  if(!im){const e=apiErr(0,[c&&c.finishReason,parts.map(p=>p.text).filter(Boolean).join(' ')].filter(Boolean).join(': '));e.refused=true;throw e;}
+  const d=im.inlineData||im.inline_data;return 'data:'+(d.mimeType||d.mime_type||'image/png')+';base64,'+d.data;}
+async function genOpenAI(key,model,blob,signal){
+  const fd=new FormData();fd.append('model',model);fd.append('prompt',AI_PROMPT);fd.append('image',blob,'face.jpg');fd.append('size','1024x1024');if(model==='gpt-image-1')fd.append('input_fidelity','high');
+  const r=await fetch('https://api.openai.com/v1/images/edits',{method:'POST',signal,headers:{Authorization:'Bearer '+key},body:fd});
+  const j=await r.json().catch(()=>({}));if(!r.ok){const e=apiErr(r.status,j.error&&j.error.message);if(j.error&&j.error.code==='moderation_blocked')e.refused=true;throw e;}
+  const d=j.data&&j.data[0];if(!d||!d.b64_json){const e=apiErr(0,'이미지가 비어 있습니다');throw e;}return 'data:image/png;base64,'+d.b64_json;}
+function aiErrText(e){const m=e&&e.message?' ('+String(e.message).slice(0,160)+')':'';
+  if(e&&e.name==='AbortError')return '2분 넘게 응답이 없어 취소했습니다. 다시 시도해 주세요.';
+  if(aiCsp||(e instanceof TypeError))return 'AI 서버에 연결하지 못했습니다. claude.ai 안에서 열었다면 보안 정책상 외부 호출이 막혀 있습니다. GitHub Pages 주소나 내려받은 파일로 열거나, 아래 "키 없이 하는 방법"을 쓰세요.';
+  if(e.refused)return 'AI가 이 사진의 변환을 거절했습니다(안전 정책). 정면 얼굴이 잘 보이는 다른 사진으로 시도해 보세요.'+m;
+  if(e.status===401||e.status===403||/api.?key/i.test(e.message||''))return 'API 키가 올바르지 않거나 이 모델을 쓸 권한이 없습니다.'+m;
+  if(e.status===404)return '모델을 찾을 수 없습니다. 모델 이름을 확인하세요.'+m;
+  if(e.status===429)return '요청 한도나 잔액을 넘었습니다. 잠시 뒤 다시 시도하거나 결제 설정을 확인하세요.'+m;
+  if(e.status===400)return '요청이 거부되었습니다.'+m;
+  return '이미지를 만들지 못했습니다.'+m;}
+$('aiGen').addEventListener('click',async()=>{if(aiBusy||!photoOrig)return;const prov=$('aiProv').value,key=$('aiKey').value.trim(),model=$('aiModel').value.trim()||AI_DEFAULT[prov];if(!key)return;
+  aiBusy=true;aiCsp=false;aiReady();aiStatus('AI가 '+(($('nm').value||'').trim()||'그 사람')+' 괴물 얼굴을 그리는 중입니다. 보통 10~40초 걸립니다.','busy');
+  const ctrl=new AbortController();const to=setTimeout(()=>ctrl.abort(),120000);
+  try{const blob=await photoBlob(photoOrig,1024);const url=prov==='openai'?await genOpenAI(key,model,blob,ctrl.signal):await genGemini(key,model,blob,ctrl.signal);
+    photoAI=await loadImg(url);useSource('ai');aiStatus('완성! 미리보기에서 눈과 입 위치가 점선에 맞는지 확인하세요.','ok');}
+  catch(e){aiStatus(aiErrText(e),'err');}
+  finally{clearTimeout(to);aiBusy=false;$('aiGen').disabled=!photoOrig||!$('aiKey').value.trim();}});
+$('aiUp').addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{photoAI=await readImage(f);useSource('ai');aiStatus('AI 이미지를 적용했습니다. 미리보기에서 위치를 맞추세요.','ok');}catch(err){aiStatus('이미지를 읽지 못했습니다.','err');}});
+$('aiCopy').addEventListener('click',()=>{const ta=$('aiPrompt');const done=()=>aiStatus('프롬프트를 복사했습니다. Gemini나 ChatGPT에 사진과 함께 붙여넣으세요.','ok');
+  const fallback=()=>{ta.focus();ta.select();aiStatus('자동 복사가 막혀 있습니다. 아래 칸의 글이 선택되었으니 직접 복사하세요.','err');};
+  try{navigator.clipboard.writeText(AI_PROMPT).then(done,fallback);}catch(e){fallback();}});
+aiLoad();aiReady();
 ['zm','ox','oy'].forEach(id=>$(id).addEventListener('input',()=>{crop.z=+$('zm').value;crop.x=+$('ox').value;crop.y=+$('oy').value;drawPreview();}));
 (()=>{let drag=null;pv.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,ox:crop.x,oy:crop.y};pv.setPointerCapture(e.pointerId);});
   pv.addEventListener('pointermove',e=>{if(!drag)return;const r=pv.getBoundingClientRect();crop.x=clamp(drag.ox+(e.clientX-drag.x)/r.width*2,-1,1);crop.y=clamp(drag.oy+(e.clientY-drag.y)/r.height*2,-1,1);$('ox').value=crop.x;$('oy').value=crop.y;drawPreview();});
@@ -826,7 +939,7 @@ function act(k){initAudio();if(G.paused)return;
 function startPunch(k){hero.side^=1;const v=k==='kick'?(hero.side?'front':'round'):null;
   const dur=k==='kick'?(v==='front'?.42:.5):{jab:.2,hook:.28,upper:.36}[k];
   hero.act={k,v,t:0,dur,imp:k==='kick'?.4:.35,hit:false,side:hero.side};SFX.whoosh(k==='kick'?.3:.12);if(v==='round')SFX.slide(true);}
-addEventListener('keydown',e=>{if(e.target&&e.target.tagName==='INPUT')return;const k=e.code;
+addEventListener('keydown',e=>{if(G.state==='menu'||G.state==='result')return;if(e.target&&/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName))return;const k=e.code;
   const map={KeyJ:'jab',KeyZ:'jab',KeyA:'jab',KeyK:'hook',KeyX:'hook',KeyS:'hook',KeyL:'upper',KeyC:'upper',KeyD:'upper',KeyI:'kick',KeyV:'kick',KeyF:'kick',Semicolon:'kick',
     Space:'dodge',ShiftLeft:'dodge',ShiftRight:'dodge',KeyE:'pickup'};
   if(k==='KeyP'||k==='Escape'){togglePause();return;}if(map[k]){e.preventDefault();if(e.repeat)return;act(map[k]);}});
