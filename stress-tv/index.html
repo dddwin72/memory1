@@ -347,6 +347,7 @@ kbd{font-family:var(--mono);background:var(--white);color:#000;border-radius:3px
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
@@ -405,7 +406,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75));
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(45,1,.1,300);
-const pipCam=new THREE.PerspectiveCamera(36,16/9,.1,300);
+const pipCam=new THREE.PerspectiveCamera(36,16/9,.1,300);camera.layers.enable(1);/* layer 1 = crowd, skipped by the PIP camera */
 const hemi=new THREE.HemisphereLight(0xffffff,0x444455,.6);scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xffffff,.9);sun.position.set(4,11,7);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);
 Object.assign(sun.shadow.camera,{left:-9,right:9,top:9,bottom:-9,near:1,far:40});sun.shadow.bias=-.0008;scene.add(sun);scene.add(sun.target);
@@ -552,7 +553,7 @@ aiLoad();aiReady();
   pv.addEventListener('wheel',e=>{e.preventDefault();crop.z=clamp(crop.z*(e.deltaY<0?1.06:.94),.6,3);$('zm').value=crop.z;drawPreview();},{passive:false});})();
 
 /* ================= CROWD ================= */
-function makeCrowd(g,spots,pal){const n=spots.length;if(!n)return{update(){}};
+function makeCrowd(g,spots,pal){const n=spots.length;if(!n)return{update(){}};if(CROWD.ready)return makeRealCrowd(g,spots,pal);const cg=new THREE.Group();g.add(cg);
   const bodies=new THREE.InstancedMesh(new THREE.BoxGeometry(.5,.75,.32),M(0xffffff,{roughness:.85}),n);
   const heads=new THREE.InstancedMesh(new THREE.SphereGeometry(.2,10,8),M(0xffffff,{roughness:.8}),n);
   const arms=new THREE.InstancedMesh(new THREE.BoxGeometry(.12,.5,.12),M(0xffffff,{roughness:.8}),n*2);
@@ -560,13 +561,82 @@ function makeCrowd(g,spots,pal){const n=spots.length;if(!n)return{update(){}};
   const skins=[0xf1c27d,0xe0ac69,0xc68642,0xffdbac];
   spots.forEach((s,i)=>{const bc=pick(pal);col.set(bc);bodies.setColorAt(i,col);arms.setColorAt(i*2,col);arms.setColorAt(i*2+1,col);col.set(pick(skins));heads.setColorAt(i,col);
     s.ph=Math.random()*TAU;s.sp=rand(6,11);if(s.ry===undefined)s.ry=Math.atan2(-s.x,-s.z);});
-  g.add(bodies,heads,arms);const m=new THREE.Matrix4(),q=new THREE.Quaternion(),qa=new THREE.Quaternion(),p=V3(),sc=V3(1,1,1),up=V3(0,1,0),ax=V3(0,0,1),off=V3();
+  cg.add(bodies,heads,arms);const m=new THREE.Matrix4(),q=new THREE.Quaternion(),qa=new THREE.Quaternion(),p=V3(),sc=V3(1,1,1),up=V3(0,1,0),ax=V3(0,0,1),off=V3();
   function update(t,ex){spots.forEach((s,i)=>{const j=Math.max(0,Math.sin(t*s.sp+s.ph))*(.05+ex*.38);q.setFromAxisAngle(up,s.ry);p.set(s.x,s.y+.375+j,s.z);m.compose(p,q,sc);bodies.setMatrixAt(i,m);
     p.y+=.56;m.compose(p,q,sc);heads.setMatrixAt(i,m);
     for(let k=0;k<2;k++){const sd=k?1:-1;off.set(sd*.32,.15,0).applyQuaternion(q);const raise=ex>.3?(2.6+Math.sin(t*s.sp*1.3+s.ph+k)*.5):.2;
       qa.setFromAxisAngle(ax,sd*raise);qa.premultiply(q);const pp=V3(s.x,s.y+.375+j+.1,s.z).add(off);const d=V3(0,.25,0).applyQuaternion(qa);pp.add(d);m.compose(pp,qa,sc);arms.setMatrixAt(i*2+k,m);}});
     bodies.instanceMatrix.needsUpdate=heads.instanceMatrix.needsUpdate=arms.instanceMatrix.needsUpdate=true;}
-  update(0,0);return{update};}
+  update(0,0);return{update,spots,pal,cg,real:false};}
+
+/* ================= REAL CROWD =================
+   Two rigged glTF people (models/crowd-*.glb) are posed once at load time and baked into static
+   meshes (stand / cheer / fist pump / clap / dance frames). Each spectator just picks a frame per tick,
+   so hundreds of people cost one instanced draw per part and frame instead of hundreds of skeletons. */
+const CROWD={ready:false,models:[]};
+function bakeModel(gltf,opt){const root=gltf.scene;root.updateMatrixWorld(true);
+  const meshes=[],bones=[];root.traverse(o=>{if(o.isSkinnedMesh)meshes.push(o);if(o.isBone)bones.push(o);});
+  const B=n=>bones.find(b=>b.name===n||b.name.endsWith(n))||null;const rest=bones.map(b=>b.quaternion.clone());
+  const reset=()=>{bones.forEach((b,i)=>b.quaternion.copy(rest[i]));root.updateMatrixWorld(true);};
+  const UP=V3(0,1,0),la=B('LeftArm').getWorldPosition(V3()),ra=B('RightArm').getWorldPosition(V3());
+  const Lv=la.sub(ra).setY(0).normalize(),Fv=V3().crossVectors(Lv,UP).normalize();
+  const dv=(l,u,f,sg)=>V3().addScaledVector(Lv,l*sg).addScaledVector(UP,u).addScaledVector(Fv,f).normalize();
+  function aim(bone,child,dir){if(!bone||!child)return;const a=bone.getWorldPosition(V3()),cur=child.getWorldPosition(V3()).sub(a).normalize();
+    const dq=new THREE.Quaternion().setFromUnitVectors(cur,dir),wq=bone.getWorldQuaternion(new THREE.Quaternion()),pq=bone.parent.getWorldQuaternion(new THREE.Quaternion()).invert();
+    bone.quaternion.copy(pq.multiply(dq.multiply(wq)));root.updateMatrixWorld(true);}
+  const tv=V3();
+  const bakeAll=()=>{root.updateMatrixWorld(true);return meshes.map(m=>{const n=m.geometry.attributes.position.count,a=new Float32Array(n*3);
+    for(let i=0;i<n;i++){m.boneTransform(i,tv);tv.applyMatrix4(m.matrixWorld);a[i*3]=tv.x;a[i*3+1]=tv.y;a[i*3+2]=tv.z;}return a;});};
+  // [left upper arm, left forearm, right upper arm, right forearm, head up]  as (outward, up, forward)
+  const POSES={stand:[[.18,-1,.06],[.1,-1,.28],[.18,-1,.06],[.1,-1,.28],0],v:[[.55,.82,.14],[.3,.95,.06],[.55,.82,.14],[.3,.95,.06],1],
+    pumpL:[[.35,.92,.15],[.15,.98,.05],[.92,-.15,.3],[.1,.9,.4],1],pumpR:[[.92,-.15,.3],[.1,.9,.4],[.35,.92,.15],[.15,.98,.05],1],
+    clap:[[.3,-.55,.78],[-.6,.3,.74],[.3,-.55,.78],[-.6,.3,.74],0]};
+  const frames=[],pose={},dance=[];
+  for(const k in POSES){const P=POSES[k];reset();
+    [['Left',P[0],P[1],1],['Right',P[2],P[3],-1]].forEach(([sd,u,f,sg])=>{aim(B(sd+'Arm'),B(sd+'ForeArm'),dv(u[0],u[1],u[2],sg));aim(B(sd+'ForeArm'),B(sd+'Hand'),dv(f[0],f[1],f[2],sg));});
+    aim(B('Head'),B('HeadTop_End'),dv(0,1,P[4]?-.3:.06,1));pose[k]=frames.length;frames.push(bakeAll());}
+  const clip=opt.dance&&gltf.animations.find(c=>/samba|dance/i.test(c.name));
+  if(clip){reset();const mx=new THREE.AnimationMixer(root);mx.clipAction(clip).play();for(let k=0;k<10;k++){mx.setTime(.3+k*.16);dance.push(frames.length);frames.push(bakeAll());}mx.stopAllAction();}
+  reset();
+  // normalise: feet on y=0, ~1.7 tall, facing +Z, centred
+  const box=(fr)=>{let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9,z0=1e9,z1=-1e9;fr.forEach(a=>{for(let i=0;i<a.length;i+=3){x0=Math.min(x0,a[i]);x1=Math.max(x1,a[i]);y0=Math.min(y0,a[i+1]);y1=Math.max(y1,a[i+1]);z0=Math.min(z0,a[i+2]);z1=Math.max(z1,a[i+2]);}});return{x0,x1,y0,y1,z0,z1};};
+  const b0=box(frames[0]),sc=(opt.h||1.7)/(b0.y1-b0.y0),yaw=Math.atan2(Fv.x,Fv.z),cs=Math.cos(-yaw),sn=Math.sin(-yaw);
+  const parts=meshes.map((m,mi)=>{const mt=m.material.clone();mt.skinning=false;mt.morphTargets=false;mt.morphNormals=false;mt.metalness=0;mt.metalnessMap=null;mt.normalMap=null;/* baked meshes have no tangents; tangent-space normal maps rendered them black */mt.roughness=Math.max(.6,mt.roughness||0);
+    ['map','emissiveMap'].forEach(k=>{if(mt[k]){mt[k].encoding=THREE.LinearEncoding;mt[k].needsUpdate=true;}});mt.needsUpdate=true;
+    const tint=opt.tint&&opt.tint.test(m.name)?'full':opt.tintAll?'mild':null;if(tint==='full'){mt.map=null;mt.color.set(0xffffff);mt.roughness=.85;}/* outfit texture is near-black: replace it with a per-person solid colour */return{name:m.name,mat:mt,tint,geos:[]};});
+  frames.forEach((fr,fi)=>{const bb=fi<Object.keys(POSES).length?b0:box(fr),cx=(bb.x0+bb.x1)/2,cz=(bb.z0+bb.z1)/2;
+    fr.forEach((a,mi)=>{for(let i=0;i<a.length;i+=3){const x=a[i]-cx,z=a[i+2]-cz;a[i]=(x*cs+z*sn)*sc;a[i+1]=(a[i+1]-b0.y0)*sc;a[i+2]=(-x*sn+z*cs)*sc;}
+      const src=meshes[mi].geometry,g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(a,3));
+      if(src.attributes.uv)g.setAttribute('uv',src.attributes.uv);if(src.index)g.setIndex(src.index);g.computeVertexNormals();g.computeBoundingSphere();parts[mi].geos.push(g);});});
+  return{parts,pose,dance};}
+function makeRealCrowd(g,spots,pal){const cg=new THREE.Group();g.add(cg);
+  const cap=matchMedia('(pointer:coarse)').matches?56:120;/* ~16k-28k triangles per person: fill the front rows first */
+  const use=spots.length<=cap?spots.slice():spots.map(s=>({s,k:Math.hypot(s.x,s.z)+Math.random()*3})).sort((a,b)=>a.k-b.k).slice(0,cap).map(o=>o.s);
+  pal=pal||[0xff3b30,0x3b82f6,0xfacc15,0x22c55e,0xa855f7,0xf97316,0xffffff,0x1f2937];const per=CROWD.models.map(()=>[]);
+  use.forEach((s,i)=>{s.m=CROWD.models.length>1&&(i*7)%20<7?1:0;s.ph=Math.random()*TAU;s.sp=rand(6,11);s.rate=rand(1.6,2.8);s.cp=Math.random();
+    if(s.ry===undefined)s.ry=Math.atan2(-s.x,-s.z);s.scl=rand(.93,1.07);s.wid=rand(.94,1.08);s.col=new THREE.Color(pick(pal)).lerp(new THREE.Color(.33,.33,.35),.22);s.colMild=new THREE.Color(1,1,1).lerp(s.col,.3);per[s.m].push(s);});
+  const meshes=CROWD.models.map((md,mi)=>md.parts.map(p=>p.geos.map(geo=>{const im=new THREE.InstancedMesh(geo,p.mat,Math.max(1,per[mi].length));if(p.tint)im.setColorAt(0,new THREE.Color(1,1,1));/* sizes the colour buffer from count, so before count=0 */
+    im.count=0;im.frustumCulled=false;im.layers.set(1);im.userData.keep=true;cg.add(im);return im;})));
+  const counts=CROWD.models.map(md=>new Int32Array(md.parts[0].geos.length));const M4=new THREE.Matrix4(),q=new THREE.Quaternion(),ps=V3(),sv=V3(),up=V3(0,1,0);
+  const frameFor=(s,md,t,ex)=>{if(ex>=1&&md.dance.length)return md.dance[Math.floor(t*7+s.ph*3)%md.dance.length];
+    if(ex>.3)return[md.pose.v,md.pose.pumpL,md.pose.v,md.pose.pumpR][Math.floor(t*s.rate+s.ph)%4];
+    return(t*.13+s.cp)%1<.18&&Math.floor(t*5+s.ph)%2?md.pose.clap:md.pose.stand;};
+  function update(t,ex){counts.forEach(c=>c.fill(0));
+    use.forEach(s=>{const md=CROWD.models[s.m],f=frameFor(s,md,t,ex),k=counts[s.m][f]++;const j=ex>.3?Math.max(0,Math.sin(t*s.sp+s.ph))*(.04+ex*.3):0;
+      q.setFromAxisAngle(up,s.ry+Math.sin(t*.7+s.ph)*.12);ps.set(s.x,s.y+j,s.z);sv.set(s.scl*s.wid,s.scl,s.scl*s.wid);M4.compose(ps,q,sv);
+      meshes[s.m].forEach((pm,pi)=>{const im=pm[f],p=md.parts[pi];im.setMatrixAt(k,M4);if(p.tint)im.setColorAt(k,p.tint==='mild'?s.colMild:s.col);});});
+    meshes.forEach((pm,mi)=>pm.forEach(fr=>fr.forEach((im,f)=>{im.count=counts[mi][f];im.visible=im.count>0;im.instanceMatrix.needsUpdate=true;if(im.instanceColor)im.instanceColor.needsUpdate=true;})));}
+  update(0,0);return{update,spots,pal,cg,real:true};}
+function upgradeCrowd(){if(!venue||!venue.crowd||!venue.crowd.cg||venue.crowd.real)return;const old=venue.crowd,parent=old.cg.parent;parent.remove(old.cg);disposeTree(old.cg);venue.crowd=makeRealCrowd(parent,old.spots,old.pal);}
+/* GLTFLoader reads embedded textures with fetch(blob:), which a strict page CSP can refuse; read blob/data images through <img> instead */
+if(THREE.ImageBitmapLoader){const ibl=THREE.ImageBitmapLoader.prototype.load;THREE.ImageBitmapLoader.prototype.load=function(url,onLoad,onProgress,onError){
+  if(!/^(blob|data):/.test(url||''))return ibl.apply(this,arguments);const sc=this,fail=e=>{if(onError)onError(e);sc.manager.itemError(url);sc.manager.itemEnd(url);};
+  sc.manager.itemStart(url);const img=new Image();img.onerror=fail;
+  img.onload=()=>createImageBitmap(img,Object.assign({},sc.options,{colorSpaceConversion:'none'})).then(bm=>{if(onLoad)onLoad(bm);sc.manager.itemEnd(url);},fail);img.src=url;};}
+function loadCrowdModels(){if(!THREE.GLTFLoader)return;const ld=new THREE.GLTFLoader();const load=u=>new Promise((res,rej)=>ld.load(u,res,undefined,rej));
+  Promise.all([load('models/crowd-man.glb'),load('models/crowd-woman.glb')]).then(([man,woman])=>{const t0=performance.now();
+    CROWD.models=[bakeModel(man,{tint:/Outfit_(Top|Bottom)/}),bakeModel(woman,{tintAll:true,dance:true})];CROWD.ready=true;CROWD.bakeMs=Math.round(performance.now()-t0);upgradeCrowd();})
+  .catch(e=>{CROWD.error=String(e&&e.message||e);});}
 function crowdBox(d0,rows,baseY,zFront,step=.75){const s=[];for(let r=0;r<rows;r++){const d=d0+r*.9,y=baseY+r*.45;
   for(let x=-d;x<=d;x+=step)s.push({x:x+rand(-.1,.1),y,z:-d});for(let z=-d+step;z<=zFront;z+=step){s.push({x:-d,y,z:z+rand(-.1,.1)});s.push({x:d,y,z:z+rand(-.1,.1)});}}return s;}
 function scatter(n,fn){const s=[];for(let i=0;i<n;i++)s.push(fn(i));return s;}
@@ -728,7 +798,7 @@ const VENUES=[
   return{bg:0xf5e6cf,fog:null,hemi:[0xfff2dd,0x8a5b33,.7],sun:[0xffe7c2,.8],fill:.4,crowd,bounds:r.bounds,ceil:4.3,update(t){cat.rotation.y=Math.sin(t*.7)*.3;}};}},
 ];
 let venue=null;
-function disposeTree(o){o.traverse(n=>{if(n.geometry)n.geometry.dispose();if(n.material){(Array.isArray(n.material)?n.material:[n.material]).forEach(m=>{if(m.map)m.map.dispose();m.dispose();});}});}
+function disposeTree(o){o.traverse(n=>{if(n.userData.keep)return;if(n.geometry)n.geometry.dispose();if(n.material){(Array.isArray(n.material)?n.material:[n.material]).forEach(m=>{if(m.map)m.map.dispose();m.dispose();});}});}
 function buildVenue(i){disposeTree(venueGroup);while(venueGroup.children.length)venueGroup.remove(venueGroup.children[0]);
   const v=VENUES[i%VENUES.length];const cfg=v.build(venueGroup);venue=Object.assign({def:v},cfg);
   scene.background=new THREE.Color(cfg.bg);scene.fog=cfg.fog?new THREE.Fog(cfg.fog[0],cfg.fog[1],cfg.fog[2]):null;
@@ -1221,7 +1291,7 @@ function resize(){renderer.setSize(innerWidth,innerHeight,false);camera.aspect=i
 function resizePip(){const f=$('pipFrame');if($('hud').hidden){pipRect=null;return;}const r=f.getBoundingClientRect();pipRect=r.width>0?r:null;pipCam.aspect=r.width/Math.max(1,r.height);pipCam.updateProjectionMatrix();}
 addEventListener('resize',resize);resize();
 // menu backdrop
-buildVenue(0);hero=makeHero();mon=makeMonster(false);scene.add(hero.root,mon.root);drawPreview();renderFace();setupRecorder();
+loadCrowdModels();buildVenue(0);hero=makeHero();mon=makeMonster(false);scene.add(hero.root,mon.root);drawPreview();renderFace();setupRecorder();
 let last=performance.now();
 function loop(now){requestAnimationFrame(loop);let rdt=Math.min(.05,(now-last)/1000);last=now;if(G.paused){render();return;}
   if(slowT>0){slowT-=rdt;timeScale=lerp(timeScale,slowTarget,.3);if(slowT<=0)slowTarget=1;}else timeScale=lerp(timeScale,1,.12);
