@@ -497,7 +497,7 @@ function drawPreview(){drawFaceBase();pvc.clearRect(0,0,400,400);pvc.save();pvc.
   pvc.drawImage(faceBase,0,0,FACE,FACE,0,0,400,400);
   pvc.setLineDash([8,6]);pvc.strokeStyle='rgba(255,210,63,.95)';pvc.lineWidth=3;const k=400/FACE;
   [EYE_L,EYE_R].forEach(e=>{pvc.beginPath();pvc.ellipse(e[0]*k,e[1]*k,30,20,0,0,TAU);pvc.stroke();});
-  pvc.beginPath();pvc.moveTo((MOUTH[0]-55)*k,MOUTH[1]*k);pvc.lineTo((MOUTH[0]+55)*k,MOUTH[1]*k);pvc.stroke();pvc.restore();if(G.state==='menu')renderFace();}
+  pvc.beginPath();pvc.moveTo((MOUTH[0]-55)*k,MOUTH[1]*k);pvc.lineTo((MOUTH[0]+55)*k,MOUTH[1]*k);pvc.stroke();pvc.restore();if(G.state==='menu'){renderFace();applyPhotoLook();}}
 function readImage(file){return new Promise((res,rej)=>{const r=new FileReader();r.onerror=()=>rej(r.error);r.onload=()=>loadImg(r.result).then(res,rej);r.readAsDataURL(file);});}
 function loadImg(src){return new Promise((res,rej)=>{const img=new Image();img.onload=()=>res(img);img.onerror=()=>rej(new Error('image'));img.src=src;});}
 function useSource(src){const ai=src==='ai'&&photoAI;photo=ai?photoAI:photoOrig;photoIsAI=!!ai;crop.z=ai?1:1.2;crop.x=0;crop.y=0;$('zm').value=crop.z;$('ox').value=0;$('oy').value=0;
@@ -901,8 +901,9 @@ function makeRealBody(mi,o){const sc=THREE.SkeletonUtils.clone(CROWD.gltf[mi].sc
   /* measure the skinned rest pose (vertex x bones), not geometry bounds: some rigs carry a 0.01 armature scale */
   const box=new THREE.Box3(),tv=V3();meshes.forEach(m=>{const n=m.geometry.attributes.position.count;for(let i=0;i<n;i+=5){m.boneTransform(i,tv);box.expandByPoint(tv.applyMatrix4(m.matrixWorld));}});
   const s=o.h/(box.max.y-box.min.y);sc.position.set(-(box.min.x+box.max.x)/2,-box.min.y,-(box.min.z+box.max.z)/2);wrap.scale.set(s*(o.wide||1),s,s*(o.wide||1));
+  const hdB=B('Head'),headBase=V3(1,1,1);if(hdB&&o.wide&&o.wide!==1){headBase.set(1/o.wide,1,1/o.wide);hdB.scale.copy(headBase);}/* heavy body, normally proportioned head */
   const sides={};['Left','Right'].forEach(sd=>{sides[sd]={arm:B(sd+'Arm'),fore:B(sd+'ForeArm'),hand:B(sd+'Hand'),up:B(sd+'UpLeg'),leg:B(sd+'Leg'),foot:B(sd+'Foot'),eye:B(sd+'Eye')};});
-  return{wrap,meshes,bones,mats,rest:bones.map(b=>b.quaternion.clone()),sides,spine:B('Spine1')||B('Spine'),chest:B('Spine2')||B('Spine1'),head:B('Head'),top:B('HeadTop_End'),
+  return{wrap,meshes,bones,mats,rest:bones.map(b=>b.quaternion.clone()),sides,spine:B('Spine1')||B('Spine'),chest:B('Spine2')||B('Spine1'),head:hdB,headBase,top:B('HeadTop_End'),
     find:nm=>meshes.find(m=>m.name.indexOf(nm)>=0)||null};}
 function headFrame(R,wrap){wrap.updateWorldMatrix(true,false);wrap.updateMatrixWorld(true);/* updateMatrixWorld also refreshes SkinnedMesh.bindMatrixInverse, which boneTransform needs */const fq=wrap.getWorldQuaternion(new THREE.Quaternion()),fw=V3(0,0,1).applyQuaternion(fq),up=V3(0,1,0).applyQuaternion(fq);
   const hb=R.head.getWorldPosition(V3()),hd=R.top.getWorldPosition(V3()).sub(hb),hl=hd.length();return{fq,fw,up,hb,hd,hl};}
@@ -917,6 +918,29 @@ function faceFront(R,F,mid,ed){const side=V3().crossVectors(F.up,F.fw),tv=V3(),r
   R.meshes.forEach(m=>{if(/Headwear|Beard/.test(m.name))return;const n=m.geometry.attributes.position.count;
     for(let i=0;i<n;i+=2){m.boneTransform(i,tv);tv.applyMatrix4(m.matrixWorld);rel.subVectors(tv,mid);const sx=rel.dot(side),uy=rel.dot(F.up);
       if(Math.abs(sx)<ed*.9&&uy>-ed*1.2&&uy<ed*.6){const f=rel.dot(F.fw);if(f>best)best=f;}}});return best>-1e9?best:ed*.3;}
+/* Photo-on-relief: copy the front of the real head (and eyeballs) into a thin skin that sits on the face, UV-mapped by planar
+   projection so the photo's eye points land exactly on the model's eyes. The photo then follows the nose, brow and lips. */
+function buildFaceDecal(R,F,mid,ed){const srcs=R.meshes.filter(m=>/Head$|Eye/.test(m.name));if(!srcs.length)return null;
+  const side=V3().crossVectors(F.up,F.fw),S=.28/ed,pos=[],uv=[],index=[],tv=V3(),rel=V3();
+  srcs.forEach(m=>{const g=m.geometry,n=g.attributes.position.count,P=new Float32Array(n*3),map=new Int32Array(n).fill(-1);
+    for(let i=0;i<n;i++){m.boneTransform(i,tv);tv.applyMatrix4(m.matrixWorld);rel.subVectors(tv,mid);P[i*3]=rel.dot(side);P[i*3+1]=rel.dot(F.up);P[i*3+2]=rel.dot(F.fw);}
+    const ix=g.index?g.index.array:null,tn=(ix?ix.length:n)/3;
+    for(let t=0;t<tn;t++){const tri=[0,1,2].map(j=>ix?ix[t*3+j]:t*3+j),[a,b,c]=tri.map(i=>i*3);
+      const ux=P[b]-P[a],uy=P[b+1]-P[a+1],uz=P[b+2]-P[a+2],vx=P[c]-P[a],vy=P[c+1]-P[a+1],vz=P[c+2]-P[a+2];
+      const nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx,nl=Math.hypot(nx,ny,nz)||1;if(nz/nl<.1)continue;/* faces the front */
+      const us=tri.map(i=>.5+P[i*3]*S),vs=tri.map(i=>.57+P[i*3+1]*S);
+      if(Math.max(...us)<.02||Math.min(...us)>.98||Math.max(...vs)<.02||Math.min(...vs)>.98)continue;
+      tri.forEach((i,j)=>{if(map[i]<0){map[i]=pos.length/3;pos.push(P[i*3],P[i*3+1],P[i*3+2]);uv.push(us[j],vs[j]);}index.push(map[i]);});}});
+  if(!index.length)return null;const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(index);g.computeVertexNormals();
+  const mt=new THREE.MeshStandardMaterial({map:faceTex,transparent:true,roughness:.7,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4});
+  const mesh=new THREE.Mesh(g,mt);mesh.renderOrder=10;mesh.frustumCulled=false;mesh.userData.noRec=true;return mesh;}
+function canvasAvg(src,x,y,w,h){try{const c=document.createElement('canvas');c.width=c.height=24;const k=c.getContext('2d');k.drawImage(src,x,y,w,h,0,0,24,24);const d=k.getImageData(0,0,24,24).data;
+  let r=0,g=0,b=0,a=0;for(let i=0;i<d.length;i+=4){const al=d[i+3]/255;r+=d[i]*al;g+=d[i+1]*al;b+=d[i+2]*al;a+=al;}return a>20?[r/a,g/a,b/a]:null;}catch(e){return null;}}
+/* beard off and neck/ears/hands tinted toward the photo's skin tone, so the photo face belongs to the body */
+function applyPhotoLook(){const m=mon;if(!m||!m.real)return;if(m.beard)m.beard.visible=!photo;if(!m.skinMats||!m.skinMats.length)return;let c=[1,1,1];
+  if(photo&&m.decal){const im=m.skinMats[0].map&&m.skinMats[0].map.image;if(im&&!m.skinAvg)m.skinAvg=canvasAvg(im,0,0,im.width,im.height);
+    const a=canvasAvg(faceBase,196,250,120,84);if(a&&m.skinAvg)c=a.map((v,i)=>clamp(v/Math.max(1,m.skinAvg[i]),.55,1.5));}
+  m.skinMats.forEach(mt=>mt.color.setRGB(c[0],c[1],c[2]));}
 function humanizeMon(m){const R=makeRealBody(G.monModel,{h:G.monModel?1.84:1.96,wide:1.28,part:(nm,mt)=>{
     if(/Outfit_Top/.test(nm)){mt.map=null;mt.color.set(0xefeae0);}
     if(/Outfit_Bottom/.test(nm)){if(!PANTS_T)PANTS_T=ctex(128,128,(x,w,h)=>{x.fillStyle='#ff4fa3';x.fillRect(0,0,w,h);x.fillStyle='#fff';for(let i=0;i<4;i++)for(let j=0;j<4;j++){x.beginPath();x.arc(i*32+(j%2)*16+8,j*32+16,6,0,TAU);x.fill();}},[6,6]);mt.map=PANTS_T;mt.color.set(0xffffff);}}});
@@ -925,18 +949,20 @@ function humanizeMon(m){const R=makeRealBody(G.monModel,{h:G.monModel?1.84:1.96,
   let mid,ed;const eL=R.sides.Left.eye,eR=R.sides.Right.eye;
   if(eL&&eR){const a=eL.getWorldPosition(V3()),b=eR.getWorldPosition(V3());mid=a.clone().add(b).multiplyScalar(.5);ed=a.distanceTo(b);}
   else{ed=F.hl*.28;mid=F.hb.clone().addScaledVector(F.hd,.45);}
-  const beard=R.find('Beard');if(beard)beard.visible=!photo;m.beard=beard;
+  m.beard=R.find('Beard');
   /* the photo patch is a flattened sphere cap whose eye points sit at (±.18,.11,…) head units: size it from the eye distance
      and put its front just ahead of the most protruding point of the real face (nose tip, glasses) so nothing pokes through */
   m.face.scale.z=.45;const front=faceFront(R,F,mid,ed),k=ed/.36*1.12,c=mid.clone().addScaledVector(F.up,-.11*k).addScaledVector(F.fw,front+.012-.283*k);
   const acc=anchorAt(R.head,c,F.fq,k);acc0.forEach(o=>acc.add(o));
   const hudA=anchorAt(R.head,c,F.fq,1);m.stars.position.set(0,.62*k+.14,0);m.stars.scale.setScalar(.5);m.excl.position.set(0,.62*k+.45,0);m.excl.scale.setScalar(.45);hudA.add(m.stars,m.excl);
+  const dec=eL&&eR?buildFaceDecal(R,F,mid,ed):null;
+  if(dec){anchorAt(R.head,mid,F.fq,1).add(dec);m.face.visible=false;m.faceMat=dec.material;m.decal=dec;m.skinMats=['Wolf3D_Head','Wolf3D_Body'].map(n=>R.find(n)).filter(Boolean).map(x=>x.material);}
   m.faceMat.transparent=true;m.face.renderOrder=10;Object.assign(m,{acc,headR:.62*k,camD:1.55,real:R,hat:R.find('Headwear')});}
 function spawnFighters(towel){if(hero)scene.remove(hero.root);if(mon)scene.remove(mon.root);
   const mk=()=>{hero=makeHero();mon=makeMonster(!!towel);scene.add(hero.root,mon.root);};
   if(humanMode()){HERO_X=-.8;MON_X=.8;mk();try{humanizeHero(hero);humanizeMon(mon);}catch(e){console.warn('real fighters unavailable',e);CROWD.noHuman=true;scene.remove(hero.root,mon.root);}}
   if(!humanMode()){HERO_X=-1.35;MON_X=1.35;if(!hero||!hero.root.parent)mk();}
-  drawFaceBase();renderFace();setupRecorder();}
+  drawFaceBase();renderFace();applyPhotoLook();setupRecorder();}
 function syncReal(){
   if(hero&&hero.real){const R=hero.real,h=hero;R.bones.forEach((b,i)=>b.quaternion.copy(R.rest[i]));h.root.updateMatrixWorld(true);
     twistB(R.spine,wdir(h.body,UPV),h.body.rotation.y);
@@ -945,7 +971,7 @@ function syncReal(){
     aimB(R.head,R.top,wdir(h.head,UPV));const bs=h.bicL.scale.x;R.sides.Left.arm.scale.set(bs,1,bs);R.sides.Right.arm.scale.set(bs,1,bs);}
   if(mon&&mon.real){const R=mon.real,m=mon;R.bones.forEach((b,i)=>b.quaternion.copy(R.rest[i]));m.root.updateMatrixWorld(true);
     [['Left',m.shL,m.elL],['Right',m.shR,m.elR]].forEach(([sd,sh,el])=>{const S=R.sides[sd];aimB(S.arm,S.fore,wdir(sh,DOWNV));aimB(S.fore,S.hand,wdir(el,DOWNV));});
-    const up=wdir(m.neck,UPV);aimB(R.head,R.top,up);twistB(R.head,up,m.neck.rotation.y);R.head.scale.setScalar(m.head.scale.x);}}
+    const up=wdir(m.neck,UPV);aimB(R.head,R.top,up);twistB(R.head,up,m.neck.rotation.y);R.head.scale.copy(R.headBase).multiplyScalar(m.head.scale.x);}}
 
 /* ================= GAME STATE ================= */
 /* difficulty: every tuning number lives here */
