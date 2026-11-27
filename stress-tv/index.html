@@ -634,7 +634,7 @@ if(THREE.ImageBitmapLoader){const ibl=THREE.ImageBitmapLoader.prototype.load;THR
   sc.manager.itemStart(url);const img=new Image();img.onerror=fail;
   img.onload=()=>createImageBitmap(img,Object.assign({},sc.options,{colorSpaceConversion:'none'})).then(bm=>{if(onLoad)onLoad(bm);sc.manager.itemEnd(url);},fail);img.src=url;};}
 function loadCrowdModels(){if(!THREE.GLTFLoader)return;const ld=new THREE.GLTFLoader();const load=u=>new Promise((res,rej)=>ld.load(u,res,undefined,rej));
-  Promise.all([load('models/crowd-man.glb'),load('models/crowd-woman.glb')]).then(([man,woman])=>{const t0=performance.now();
+  Promise.all([load('models/crowd-man.json'),load('models/crowd-woman.json')]).then(([man,woman])=>{const t0=performance.now();
     CROWD.models=[bakeModel(man,{tint:/Outfit_(Top|Bottom)/}),bakeModel(woman,{tintAll:true,dance:true})];CROWD.ready=true;CROWD.bakeMs=Math.round(performance.now()-t0);upgradeCrowd();})
   .catch(e=>{CROWD.error=String(e&&e.message||e);});}
 function crowdBox(d0,rows,baseY,zFront,step=.75){const s=[];for(let r=0;r<rows;r++){const d=d0+r*.9,y=baseY+r*.45;

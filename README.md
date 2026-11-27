@@ -55,9 +55,9 @@ GitHub Pages에서는 `https://dddwin72.github.io/memory1/stress-tv/` 로 열 �
 
 ## 관객 모델 출처
 
-`stress-tv/models/`의 두 모델은 three.js 예제 저장소(MIT)에서 가져왔습니다.
+`stress-tv/models/`의 두 모델(glTF, 바이너리를 JSON 안에 넣은 형식)은 three.js 예제 저장소(MIT)에서 가져왔습니다.
 
-- `crowd-man.glb`: three.js `examples/models/gltf/readyplayer.me.glb` (Ready Player Me 아바타)
-- `crowd-woman.glb`: three.js `examples/models/gltf/Michelle.glb` (Mixamo 캐릭터)
+- `crowd-man.json`: three.js `examples/models/gltf/readyplayer.me.glb` (Ready Player Me 아바타)
+- `crowd-woman.json`: three.js `examples/models/gltf/Michelle.glb` (Mixamo 캐릭터)
 
 캐릭터 자체의 권리는 각각 Ready Player Me와 Adobe Mixamo 약관을 따릅니다. 개인적으로 쓰는 데는 문제가 없지만, 상업적으로 배포하려면 각 약관을 확인하세요. 모델은 `fetch`로 불러오므로 파일을 직접 열지 말고 GitHub Pages나 `python3 -m http.server`로 열어야 실사 관객이 나옵니다.
