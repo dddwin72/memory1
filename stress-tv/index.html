@@ -693,7 +693,7 @@ const VENUES=[
   [[-4.5,4.2],[4.5,4.2]].forEach(([x,z])=>{const m=B(g,1.4,.9,.6,0x111111,x,-.8,z+1.2);});
   const crowd=makeCrowd(g,crowdBox(6.2,5,-1.2,3.5));
   const st=txt(['STV LIVE','참교육 챔피언십'],{bg:'#0b1026',fg:'#ffd23f',size:80});B(g,6,3.2,.2,M(0xffffff,{map:st,emissive:0xffffff,emissiveMap:st,emissiveIntensity:.7}),0,8,-11,{cast:false});
-  return{bg:0x05060d,fog:[0x05060d,16,45],hemi:[0xbfd1ff,0x222233,.45],sun:[0xffffff,1.05],fill:.5,crowd,bounds:null,ceil:12};}},
+  return{bg:0x05060d,fog:[0x05060d,16,45],hemi:[0xbfd1ff,0x222233,.45],sun:[0xffffff,1.05],fill:.5,crowd,bounds:null,ceil:12,sideX:3.58};}},
  {id:'cage',name:'헥사곤 케이지',sub:'철창 속 진검승부',build(g){
   B(g,80,.1,80,0x0b0b0e,0,-.65,0,{cast:false});
   const R=6.2;const ft=ctex(512,512,(x,w,h)=>{x.fillStyle='#1b1b20';x.fillRect(0,0,w,h);x.strokeStyle='#d62839';x.lineWidth=10;x.beginPath();for(let i=0;i<6;i++){const a=i*Math.PI/3;x.lineTo(w/2+Math.sin(a)*200,h/2+Math.cos(a)*200);}x.closePath();x.stroke();
@@ -1078,8 +1078,9 @@ function shootPortrait(){const m=mon;monShot=null;if(!m||!m.real||photo)return;t
   const S=.28/m.eyeD,hw=.40625/S,q=m.midA.getWorldQuaternion(new THREE.Quaternion()),fw=V3(0,0,1).applyQuaternion(q),up=V3(0,1,0).applyQuaternion(q),c=m.midA.getWorldPosition(V3()).addScaledVector(up,-.0544/S);
   shotCam.left=-hw;shotCam.right=hw;shotCam.top=hw;shotCam.bottom=-hw;shotCam.far=.6+m.eyeD*5;shotCam.position.copy(c).addScaledVector(fw,.6);shotCam.up.copy(up);shotCam.lookAt(c);shotCam.updateProjectionMatrix();
   const hide=[venueGroup,hero.root,m.stars,m.excl,m.decal||m.face].filter(o=>o&&o.visible);hide.forEach(o=>{o.visible=false;});const bg=scene.background,fg=scene.fog;scene.background=shotBg;scene.fog=null;
+  const li=[hemi,sun,fill,...disco].map(l=>l.intensity);disco.forEach(l=>{l.intensity=0;});if(venue&&venue.hemi){hemi.intensity=venue.hemi[2];sun.intensity=venue.sun[1];fill.intensity=venue.fill;}/* plain venue lighting, never the party lights */
   shotRT.texture.encoding=renderer.outputEncoding;renderer.setRenderTarget(shotRT);renderer.clear();renderer.render(scene,shotCam);const px=new Uint8Array(256*256*4);renderer.readRenderTargetPixels(shotRT,0,0,256,256,px);renderer.setRenderTarget(null);
-  scene.background=bg;scene.fog=fg;hide.forEach(o=>{o.visible=true;});
+  scene.background=bg;scene.fog=fg;hide.forEach(o=>{o.visible=true;});[hemi,sun,fill,...disco].forEach((l,i)=>{l.intensity=li[i];});
   const cv=document.createElement('canvas');cv.width=cv.height=256;const x=cv.getContext('2d'),id=x.createImageData(256,256);for(let r=0;r<256;r++)id.data.set(px.subarray((255-r)*1024,(256-r)*1024),r*1024);
   for(let i=3;i<id.data.length;i+=4)id.data[i]=255;x.putImageData(id,0,0);monShot=cv;}catch(e){monShot=null;}}
 
@@ -1177,7 +1178,8 @@ const CAMS=[
 ];
 const CK=()=>mon&&mon.real?.64:1;let camMid=0;/* human staging: the wide cameras pan with the pair, so a knock-back does not leave a tall screen */
 function kshot(s,i){const k=CK();if(k===1||i===1)return s;if(i===3){const hp=hero.root.position;s.p.sub(hp).multiplyScalar(k).add(hp);s.p.y+=.25;return s;}
-  s.p.multiplyScalar(i===2?.86:k);/* the low ringside camera stays behind the item drop zone */s.l.multiplyScalar(k);s.p.x+=camMid;s.l.x+=camMid;return s;}
+  s.p.multiplyScalar(i===2?.86:k);/* the low ringside camera stays behind the item drop zone */s.l.multiplyScalar(k);s.p.x+=camMid;s.l.x+=camMid;
+  if(i===6&&venue&&venue.sideX&&s.p.x>venue.sideX){s.l.x+=(s.p.x-venue.sideX)*.35;s.p.x=venue.sideX;}/* ring: the side camera stays inside the ropes and turns instead */return s;}
 const dir={shot:0,t:3.5,pip:1,forced:0};
 function cutTo(i,dur){if(dir.shot!==i){dir.shot=i;glitch();}dir.t=dur||rand(2.5,4.5);$('camname').textContent=CAMS[i].n;}
 function glitch(){const f=$('flash');f.style.transition='none';f.style.background='#000';f.style.opacity=.25;requestAnimationFrame(()=>{f.style.transition='opacity 80ms';f.style.opacity=0;});}
@@ -1239,8 +1241,8 @@ function act(k){initAudio();if(G.paused)return;
 function startPunch(k){hero.side^=1;const v=k==='kick'?(hero.side?'front':'round'):null;
   const dur=k==='kick'?(v==='front'?.42:.5):{jab:.2,hook:.28,upper:.36}[k];
   const tgt=k==='upper'?'chin':k==='kick'?(v==='front'?'belly':'head'):k==='jab'&&Math.random()<.4?'body':'head';
-  const down=!!(hero.cal&&mon.real&&mon.fallT<-1&&!mon.dead);/* opponent on the floor: every attack becomes a stomp on the body */
-  hero.act={k,v,t:0,dur,imp:k==='kick'?.4:.35,hit:false,side:hero.side,tgt:down?'down':tgt,st:down,cal:hero.cal?hero.cal[down?'frontdown1':(v||k)+tgt+hero.side]:null};SFX.whoosh(k==='kick'?.3:.12);if(v==='round')SFX.slide(true);}
+  const down=!!(hero.cal&&mon.real&&(mon.fallT<-1||mon.fall<-.35)&&!mon.dead);/* also while the body is still getting up *//* opponent on the floor: every attack becomes a stomp on the body */
+  hero.act={k,v,t:0,dur,imp:k==='kick'?.4:.35,hit:false,side:hero.side,tgt:down?'down':tgt,st:down,cal:hero.cal?hero.cal[down?'frontdown1':(v||k)+tgt+hero.side]:null};SFX.whoosh(k==='kick'?.3:.12);if(v==='round'&&!down)SFX.slide(true);}
 addEventListener('keydown',e=>{if(G.state==='result'){if(e.repeat)e.preventDefault();return;}if(G.state==='menu')return;if(e.target&&/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName))return;const k=e.code;
   const map={KeyJ:'jab',KeyZ:'jab',KeyA:'jab',KeyK:'hook',KeyX:'hook',KeyS:'hook',KeyL:'upper',KeyC:'upper',KeyD:'upper',KeyI:'kick',KeyV:'kick',KeyF:'kick',Semicolon:'kick',
     Space:'dodge',ShiftLeft:'dodge',ShiftRight:'dodge',KeyE:'pickup'};
@@ -1260,8 +1262,8 @@ function togglePause(){if(!['fight','intro'].includes(G.state))return;G.paused=!
 function comboMult(){return Math.min(5,1+Math.floor(G.combo/8)*.5);}
 function contactPoint(k){if(mon.real){const A=hero.act,T=strikePoint(A&&A.tgt||'head'),tb=A&&A.cal&&A.cal.tab;if(tb)T.y=clamp(T.y,tb[0][1],tb[tb.length-1][1]);/* out of reach: the effect goes where the glove or foot really is */return T;}const h=monHead();if((k==='jab'&&Math.random()<.4)||(k==='kick'&&hero.act&&hero.act.v==='front')){const b=V3();mon.sq.localToWorld(b.set(0,1.2,.8));return b;}
   return h.add(MON_FWD.clone().multiplyScalar(HR()*.9)).add(V3(0,k==='upper'?-HR()*.55:0,0));}
-const ONOM={jab:['퍽!','팍!','POW!','빡!'],hook:['콰직!','빠악!','WHAM!','쩍!'],upper:['뻐억!!','UPPER!!','슈욱-쾅!'],front:['뻥!!','퍼어억!!','KICK!!'],round:['돌려차기!!','빠바박!!','WHAAAM!!'],hammer:['뿅!!','뿅망치!!','삑!']};
-function landHit(k){const m=mon;if(m.dead)return;
+const ONOM={jab:['퍽!','팍!','POW!','빡!'],hook:['콰직!','빠악!','WHAM!','쩍!'],upper:['뻐억!!','UPPER!!','슈욱-쾅!'],front:['뻥!!','퍼어억!!','KICK!!'],round:['돌려차기!!','빠바박!!','WHAAAM!!'],hammer:['뿅!!','뿅망치!!','삑!'],stomp:['쿵!','꾹!!','STOMP!!','콱!']};
+function landHit(k){const m=mon;if(m.dead||G.state!=='fight')return;
   hero.hist.push(k);if(hero.hist.length>3)hero.hist.shift();
   if(G.items.hammer<=0&&m.stun<=0&&m.fall>-.8&&hero.hist.length===3&&hero.hist.every(x=>x===k)&&Math.random()<DIFF.read){hero.hist=[];whiff();return;}
   let base=k==='kick'?(hero.act&&hero.act.v==='round'?14:12):{jab:4,hook:7,upper:10}[k];let crit=Math.random()<DIFF.crit||m.stun>0||G.items.clock>0;let hammer=false;
@@ -1278,7 +1280,7 @@ function landHit(k){const m=mon;if(m.dead)return;
   if(guarded){SFX.guard();burst(cp,false);popText(cp,'팅!','onom');m.sqV-=2;m.velX+=.4;if(performance.now()-m.lastBubble>900){bubble(pick(['흥! 안 아프지롱~','막았지롱! 콤보 끝~','가드 올렸다~ 어퍼컷도 모르지?']));m.lastBubble=performance.now();}popText(cp,'콤보 끊김','num',0,40);updateHUD();return;}
   SFX.punch(crit?1.2:1);if(crit)SFX.crit();if(hammer)SFX.squeak();if(G.items.chicken>0){SFX.honk();spawn({sprite:emojiTex('🐔'),pos:cp.clone().add(V3(-.8,.3,0)),vel:V3(3,2,0),scale:.6,life:.6,grav:-6});}
   if(G.items.gold>0)for(let i=0;i<8;i++)spawn({geo:GEO.sph,pos:cp.clone(),vel:V3(rand(-4,4),rand(0,5),rand(-4,4)),color:0xffd23f,emissive:0xffb703,ei:2,scale:.05,life:.5,grav:-6});
-  burst(cp,crit);const kv=k==='kick'&&hero.act?hero.act.v:null;const ot=pick(hammer?ONOM.hammer:ONOM[kv||k]);popText(cp,ot,'onom'+(crit?' crit':''),rand(-30,30),rand(-20,0));popText(cp,'+'+sc.toLocaleString(),'num',rand(40,80),rand(30,60));
+  burst(cp,crit);const kv=k==='kick'&&hero.act?hero.act.v:null;const ot=pick(hammer?ONOM.hammer:hero.act&&hero.act.st?ONOM.stomp:ONOM[kv||k]);popText(cp,ot,'onom'+(crit?' crit':''),rand(-30,30),rand(-20,0));popText(cp,'+'+sc.toLocaleString(),'num',rand(40,80),rand(30,60));
   if(gbreak){popText(cp,'가드 브레이크!','big',0,-70);say('guard');}
   recEvents.push({f:recFrame,p:cp.clone(),crit,txt:ot});
   // monster reaction
@@ -1295,6 +1297,7 @@ function landHit(k){const m=mon;if(m.dead)return;
   }
   if(hammer){m.sqv=.3;m.sqV=0;m.dizzy=Math.max(m.dizzy,2.2);dust(V3(m.root.position.x,0,0),8);}
   if(m.fall<-1&&!st){m.vy+=2.5;}
+  {const H=Math.min(3,(venue&&venue.ceil||6)-2);m.vy=Math.min(m.vy,Math.sqrt(36*Math.max(0,H-m.y)));}/* juggling never sends the opponent out of the picture or through the ceiling */
   if(crit){m.eyePop=1.15;m.eyePopV=0;teeth(st?monHead():cp,Math.floor(rand(1,4)));tears(m);m.dizzy=Math.max(m.dizzy,1.6);say('crit');if(Math.random()<.5)cutTo(1,1.4);}
   else if(Math.random()<.25)say('hit');
   m.flash=1;if(performance.now()-m.lastBubble>650||crit){bubble(pick(OUCH),crit);m.lastBubble=performance.now();}
@@ -1337,7 +1340,7 @@ function monAttackImpact(){const m=mon,a=m.attack;a.done=true;m.excl.visible=fal
     bubble(pick(['메롱~ 약하다 약해!','으하하! 맞았지?','이게 사회의 맛이다!']));popText(heroHead(),'아얏!','onom crit');
     for(let i=0;i<5;i++)spawn({sprite:starTex,pos:heroHead(),vel:V3(rand(-2,2),rand(2,4),rand(-2,2)),scale:.25,life:1,grav:-5});
     const heal=Math.round(m.maxHp*DIFF.healOnHit);m.hp=Math.min(m.maxHp,m.hp+heal);popText(monHead(),'체력 +'+heal,'num',0,-60);
-    if(G.hearts<=0){const fin=()=>{if(G.state!=='fight')return;if(G.paused){setTimeout(fin,300);return;}gameOver();};setTimeout(fin,1200);}}
+    if(G.hearts<=0){const fin=()=>{if(G.state!=='fight')return;if(G.paused||hero.hurt>0){setTimeout(fin,100);return;}gameOver();};setTimeout(fin,1200);}}
   if(a.dodged!=='perfect'&&Math.random()<DIFF.double(G.level)*(m.enraged?1.4:1)){m.atkT=.15;bubble('한 번 더!!',true);}
   updateHUD();}
 function endRound(){removeFieldItem();if(G.feverT>0)endFever();G.items.clock=0;document.body.classList.remove('slowmo');$('warn').hidden=true;if(mon){mon.attack=null;mon.excl.visible=false;}}
@@ -1416,9 +1419,9 @@ function setGuardPose(){return{sL:{x:-.55,y:0,z:-.15},sR:{x:-.55,y:0,z:.15},eL:-
 function poseHero(dt){const h=hero;let P;
   if(G.state==='ceremony'){P=poseCeremony();}
   else{P=setGuardPose();const bob=Math.sin(G.t*7)*.035;P.rootY=Math.abs(bob);P.bodyY=Math.sin(G.t*3.5)*.06;
-    if(G.state==='ko'||G.state==='replay'){P.sL={x:-2.9,y:0,z:.3};P.sR={x:-.6,y:0,z:.15};P.eL=-.2;P.mouth=2;}
+    const vic=G.state==='ko'||G.state==='replay';if(vic&&!h.act){P.sL={x:-2.9,y:0,z:.3};P.sR={x:-.6,y:0,z:.15};P.eL=-.2;P.mouth=2;}
     /* human mode: while the opponent is down the hero steps up to the body and stomps from there */
-    const ap=h.ap||(h.ap=V3());if(h.real&&h.cal&&dt>0){if(G.state==='fight'&&mon.real&&mon.fallT<-1&&!mon.dead){const T=strikePoint('down'),g=aimRow(h.cal.frontdown1.tab,T.y);_v1.set(T.x-g[1]-(HERO_X+h.ox),0,T.z-g[2]);const l=_v1.length();if(l>1.7)_v1.multiplyScalar(1.7/l);ap.lerp(_v1,1-Math.exp(-dt*9));}
+    const ap=h.ap||(h.ap=V3());if(h.real&&h.cal&&dt>0&&!(h.hurt>0&&G.state==='fight')){if(G.state==='fight'&&mon.real&&mon.fallT<-1&&!mon.dead){const T=strikePoint('down'),g=aimRow(h.cal.frontdown1.tab,T.y);_v1.set(T.x-g[1]-.2-(HERO_X+h.ox),0,T.z-g[2]+.08);/* a short step back from the lying legs; each stomp steps in */const l=_v1.length();if(l>1.7)_v1.multiplyScalar(1.7/l);ap.lerp(_v1,1-Math.exp(-dt*9));}
       else ap.multiplyScalar(Math.exp(-dt*7));}
     if(h.act){const p=h.act.t/h.act.dur;const k=p<.35?ease(p/.35):1-ease((p-.35)/.65);const L=h.act.side;const s=L?'sL':'sR',e=L?'eL':'eR',sg=L?1:-1,C=h.act.cal;let rk=k;
       const A=h.act,AK=A.st?'kick':A.k,AV=A.st?'front':A.v;let CA=C?C.a:0;
@@ -1434,7 +1437,8 @@ function poseHero(dt){const h=hero;let P;
         else{const sw=p<.4?ease(p/.4):1-ease((p-.4)/.6);P.kick={leg:'R',x:-.35*q,z:(C?CA:-1.5)*q};P.spinY=lerp(-.6,1.45,sw)*Math.min(1,q*3);P.spinZ=-.38*q;P.fwd=.6*q;P.rootY=.3*q;}}
       P.mouth=1+k;
       /* human mode: turn toward the target and lunge exactly far enough for the glove or foot to land on it */
-      if(C){P.spinY+=C.yaw*rk;P.fwd=0;if(!A.dry){P.lx=(A.gx-(HERO_X+h.ox+ap.x))*rk;P.lz=(A.gz-ap.z)*rk;}}}
+      if(C){P.spinY+=C.yaw*rk;P.fwd=0;if(!A.dry){P.lx=(A.gx-(HERO_X+h.ox+ap.x))*rk;P.lz=(A.gz-ap.z)*rk;}}
+      if(vic){const w=1-rk;P.sL={x:lerp(P.sL.x,-2.9,w),y:0,z:lerp(P.sL.z,.3,w)};P.sR={x:lerp(P.sR.x,-.6,w),y:0,z:lerp(P.sR.z,.15,w)};P.eL=lerp(P.eL,-.2,w);P.eR=lerp(P.eR,-1.9,w);P.mouth=lerp(P.mouth,2,w);}/* the finishing blow eases into the raised fist */}
     /* a cancelled attack (dodge, being hit) lets go of its lunge over a few frames instead of in one */
     if(h.real&&!(h.act&&h.act.dry)){if(P.lx!=null){(h.rl=h.rl||V3()).set(P.lx,0,P.lz);}else if(h.rl){h.rl.multiplyScalar(Math.max(0,1-dt*12));P.lx=h.rl.x;P.lz=h.rl.z;}}
     if(h.dodge>0){const p=1-h.dodge/.5;const d=Math.sin(Math.PI*clamp(p,0,1));P.spinX=-1.05*d;P.fwd=-.5*d;if(h.real)P.hipLean=-.85*P.spinX;/* a real body sways back over planted feet instead of tipping around its hips */P.sL={x:-.3,y:0,z:1.4*d};P.sR={x:-.3,y:0,z:-1.4*d};P.eL=P.eR=-.6;P.mouth=1.8;}
@@ -1467,7 +1471,7 @@ function updateMonster(dt){const m=mon;if(!m)return;const mdt=dt*(G.items.clock>
     if(!m.attack&&m.stun<=0&&m.guard<=0){m.atkT-=mdt;m.guardT-=mdt;
       if(m.atkT<=0&&hero.hurt<=0){const lv=G.level,rg=m.enraged?.85:1;const w=rand(...DIFF.wind(lv))*rg;const feint=Math.random()<DIFF.feint(lv)*(m.enraged?1.4:1);
         m.attack={t:0,wind:w,done:false,dodged:null,rec:0,feint,feintAt:w*rand(.5,.72)};m.excl.visible=true;$('warn').hidden=false;$('warnZone').style.width=Math.min(60,DIFF.perfect/w*100)+'%';SFX.warn();
-        bubble(pick(['이야아압!','받아라!','감히 나를?!','야근이다!!']));m.atkT=rand(...DIFF.atkGap(lv))*(m.enraged?.6:1);}
+        bubble(pick(['이야아압!','받아라!','감히 나를?!','야근이다!!']));m.atkT=rand(...DIFF.atkGap(lv))*(m.enraged?.6:1);m.taunt=0;}
       else if(m.guardT<=0){m.guardT=rand(...DIFF.guardGap);if(Math.random()<DIFF.guardP){m.guard=DIFF.guardDur;say('guard');bubble('철벽 방어!');}}
       if(G.t-G.lastHit>2.8&&m.taunt<=0&&!m.attack&&Math.random()<dt*.6){m.taunt=1.6;bubble(pick(['메롱~','못 때리지롱~','에헤헤~ 겁쟁이!']));say('taunt');}}
     if(m.attack&&m.attack.feint&&!m.attack.done&&m.attack.t>=m.attack.feintAt){m.attack=null;m.excl.visible=false;$('warn').hidden=true;m.atkT=rand(.3,.5);
@@ -1481,7 +1485,7 @@ function updateMonster(dt){const m=mon;if(!m)return;const mdt=dt*(G.items.clock>
   let lunge=0,armR=0,armL=0;const a=m.attack;
   if(a){if(!a.done){const f=a.t/a.wind;armR=f;lunge=-.15*f;}else{const r=Math.min(1,a.rec/.12);armR=1+r;lunge=-.9*(1-Math.max(0,(a.rec-.15)/.4));}}
   let lg=0,turnT=0;if(a&&m.real){const tt=a.done?.1+a.rec:a.t-(a.wind-.1);/* human mode: the fist starts down 0.1 s early so it arrives with the impact */
-    armR=tt<0?a.t/Math.max(.05,a.wind-.1):1+Math.min(1,tt/.2);lg=a.done?1-Math.max(0,(a.rec-.15)/.4):tt<0?.12*a.t/a.wind:lerp(.12,1,ease(tt/.1));turnT=a.done?lg:Math.min(1,a.t/a.wind*2);}
+    armR=tt<0?a.t/Math.max(.05,a.wind-.1):1+Math.min(1,tt/.2);lg=a.done?1-Math.max(0,(a.rec-(a.dodged?.15:.03))/.4):tt<0?.12*a.t/a.wind:lerp(.12,1,ease(tt/.1));turnT=a.done?lg:Math.min(1,a.t/a.wind*2);}
   m.turn=lerp(m.turn||0,turnT,1-Math.exp(-mdt*18));
   sp2(m,'sqv','sqV',1+Math.sin(t*3)*.025,170,9,mdt);sp2(m,'leanX','leanXV',a&&a.done?.35:0,90,8,mdt);sp2(m,'leanZ','leanZV',m.taunt>0?Math.sin(t*10)*.25:0,80,7,mdt);
   sp2(m,'headX','headXV',0,110,8,mdt);sp2(m,'headY','headYV',0,90,6,mdt);sp2(m,'headZ','headZV',0,90,7,mdt);sp2(m,'spin','spinV',m.spinT,60,9,mdt);
@@ -1494,7 +1498,7 @@ function updateMonster(dt){const m=mon;if(!m)return;const mdt=dt*(G.items.clock>
   m.tilt.position.y=m.real?Math.abs(Math.sin(m.fall+m.leanX))*m.real.halfDepth:0;/* a real body pivots on its heels: lift it so it lies on the floor, not in it */
   m.neck.rotation.set(m.headX+dz*Math.sin(t*6)*.18,m.headY+m.spin,m.headZ+dz*Math.cos(t*6)*.18);
   m.head.scale.setScalar(lerp(m.head.scale.x,m.swell,.1));
-  const lungeW=MON_FWD.clone().multiplyScalar(-lunge);if(m.real)lungeW.set(-Math.max(0,MON_X+m.offX-(HERO_X+(hero.ox||0))-.55)*lg,0,0);/* human mode: step in on the hero, not toward the audience */
+  const lungeW=MON_FWD.clone().multiplyScalar(-lunge);if(m.real){if(a)m.lgx=-Math.max(0,MON_X+m.offX-(HERO_X+(hero.ox||0))-.55)*lg;else m.lgx=(m.lgx||0)*Math.max(0,1-dt*10);/* a counter cut short (time-up, banana) lets go of its step-in over a few frames */lungeW.set(m.lgx,0,0);}/* human mode: step in on the hero, not toward the audience */
   m.root.position.set(MON_X+m.offX+lungeW.x,m.y,lungeW.z);m.root.rotation.y=MON_RY-.16*(m.turn||0);/* a small turn lines the right fist up with the hero's head */
   // arms
   const idle=Math.sin(t*3)*.15;
@@ -1575,7 +1579,7 @@ function loop(now){requestAnimationFrame(loop);let rdt=Math.min(.05,(now-last)/1
   let dt=rdt*timeScale;if(hitstop>0){hitstop-=rdt;dt=0;}
   if(G.state!=='replay')G.t+=dt;
   shake=Math.max(0,shake-rdt*2.2);fovKick*=Math.max(0,1-rdt*10);
-  camMid=lerp(camMid,hero&&mon&&mon.real&&['fight','ko','over','timeup'].includes(G.state)?clamp((hero.root.position.x+mon.root.position.x)/2,-1.2,1.8):0,1-Math.exp(-rdt*4));
+  camMid=lerp(camMid,hero&&mon&&mon.real&&['fight','ko','over','timeup'].includes(G.state)?clamp(((hero.hurt>0?Math.min(hero.root.position.x,heroHead().x):hero.root.position.x)+mon.root.position.x)/2,-1.2,1.8):0,1-Math.exp(-rdt*4));
   const ex=G.state==='ceremony'||G.state==='ko'?1:G.feverT>0?.8:Math.min(.6,G.combo/30);
   if(venue){venue.crowd.update(now/1000,ex);if(venue.update)venue.update(now/1000,rdt);}
   const party=G.feverT>0||G.state==='ceremony';partyK=lerp(partyK,party?1:0,.1);
