@@ -2,6 +2,7 @@
 <title>스트레스 TV 참교육 라이브</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' data: blob: https://generativelanguage.googleapis.com https://api.openai.com; base-uri 'none'; form-action 'none'">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700;900&display=swap">
@@ -306,15 +307,15 @@ kbd{font-family:var(--mono);background:var(--white);color:#000;border-radius:3px
           <label class="f" for="aiProv">AI 서비스
             <select id="aiProv"><option value="gemini">Google Gemini</option><option value="openai">OpenAI</option></select></label>
           <label class="f" for="aiModel">모델
-            <input type="text" id="aiModel" spellcheck="false" autocomplete="off"></label>
+            <input type="text" id="aiModel" list="aiModels" spellcheck="false" autocomplete="off" autocapitalize="off"><datalist id="aiModels"></datalist></label>
         </div>
         <label class="f" for="aiKey">API 키
-          <input type="password" id="aiKey" autocomplete="off" spellcheck="false" placeholder="본인 API 키를 붙여넣으세요"></label>
-        <label class="chk" for="aiRemember"><input type="checkbox" id="aiRemember">이 기기에 키 기억하기</label>
+          <input type="password" id="aiKey" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore placeholder="본인 API 키를 붙여넣으세요"></label>
+        <p class="note keynote">🔒 키는 저장하지 않습니다. 이 탭을 닫거나 새로 고치면 지워지고, 버튼을 누를 때 선택한 AI 서비스의 공식 주소로만 암호화되어 전송됩니다.</p>
         <button class="go ai-go" id="aiGen" disabled>AI로 캐리커처 얼굴 만들기</button>
         <p class="aiStatus" id="aiStatus" role="status" aria-live="polite">먼저 위에서 얼굴 사진을 올리고 API 키를 넣으세요.</p>
         <div class="seg" id="aiSeg" hidden><button id="segOrig" data-src="orig" aria-pressed="false">원본 사진 쓰기</button><button id="segAi" data-src="ai" aria-pressed="true">AI 얼굴 쓰기</button></div>
-        <p class="note">버튼을 누르면 사진이 선택한 AI 서비스로 전송되고, 그 서비스의 이미지 요금이 부과됩니다. 키는 이 브라우저에만 보관되며 그 AI 서비스 말고는 어디에도 보내지 않습니다. claude.ai 안에서 열면 보안 정책 때문에 외부 호출이 막히므로, 자동 생성은 GitHub Pages 주소나 내려받은 파일로 열었을 때 동작합니다.</p>
+        <p class="note">버튼을 누르면 사진이 선택한 AI 서비스로 전송되고, 그 서비스의 이미지 요금이 부과됩니다. 키는 게임 코드, 저장소, 공유 링크 어디에도 들어가지 않으며, 이 페이지는 선택한 AI 서비스 말고는 다른 서버로 데이터를 보낼 수 없게 막아 두었습니다. claude.ai 안에서 열면 보안 정책 때문에 외부 호출이 막히므로, 자동 생성은 GitHub Pages 주소나 내려받은 파일로 열었을 때 동작합니다.</p>
         <hr>
         <h3>키 없이 하는 방법 (어디서나 동작)</h3>
         <ol class="steps"><li>아래 버튼으로 프롬프트를 복사합니다.</li><li>Gemini 또는 ChatGPT 앱에 얼굴 사진과 프롬프트를 함께 넣어 이미지를 만듭니다.</li><li>만들어진 이미지를 저장해서 여기에 올립니다.</li></ol>
@@ -349,9 +350,9 @@ kbd{font-family:var(--mono);background:var(--white);color:#000;border-radius:3px
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js" integrity="sha384-fljlqkjWlmSFjkESkQvm77heIZpoWmXEOzlCA7kOpGUH+95Zk0yGfQieWM2q136E" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js" integrity="sha384-48sEMz1pIoO9ktrDus6dw7q9KVj242/vYNeNwDA4Lom38S7Sutog0tJLSqRBBZa6" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
@@ -509,7 +510,9 @@ function useSource(src){const ai=src==='ai'&&photoAI;photo=ai?photoAI:photoOrig;
 $('ph').addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{photoOrig=await readImage(f);photoAI=null;useSource('orig');aiReady();}catch(err){aiStatus('사진을 읽지 못했습니다. JPG나 PNG 파일을 골라 주세요.','err');}});
 
 /* ================= AI MONSTER FACE ================= */
-const AI_DEFAULT={gemini:'gemini-2.5-flash-image',openai:'gpt-image-1'};
+const AI_DEFAULT={gemini:'gemini-nano-banana-2.1',openai:'gpt-image-1'};
+const AI_MODELS={gemini:['gemini-nano-banana-2.1','gemini-3-pro-image','gemini-3.1-flash-image'],openai:['gpt-image-1']};/* suggestions; the field stays free text */
+const AI_OLD=['gemini-2.5-flash-image','gemini-2.5-flash-image-preview'];/* retired defaults, replaced on load */
 const AI_PROMPT="Make a comic caricature portrait of the person in this photo for a lighthearted comedy game. "+
  "It must stay clearly recognizable as the SAME person: keep their face shape, eyes, eyebrows, nose, mouth, skin tone, hairstyle, glasses and other distinctive features. "+
  "Photorealistic style, with a slightly exaggerated grumpy, flustered expression. No hats, no text, nothing scary or gory. "+
@@ -518,32 +521,47 @@ $('aiPrompt').value=AI_PROMPT;
 const AIK='stv.ai';let aiCsp=false,aiBusy=false;
 document.addEventListener('securitypolicyviolation',e=>{if(/googleapis|openai/.test(e.blockedURI||''))aiCsp=true;});
 function aiStatus(t,cls){const el=$('aiStatus');el.textContent=t;el.className='aiStatus'+(cls?' '+cls:'');}
-function aiLoad(){try{const v=JSON.parse(localStorage.getItem(AIK)||'{}');if(v.prov)$('aiProv').value=v.prov;$('aiModel').value=v.model||AI_DEFAULT[$('aiProv').value];if(v.key){$('aiKey').value=v.key;$('aiRemember').checked=true;}}catch(e){$('aiModel').value=AI_DEFAULT.gemini;}}
-function aiSave(){try{const v={prov:$('aiProv').value,model:$('aiModel').value.trim()};if($('aiRemember').checked)v.key=$('aiKey').value.trim();localStorage.setItem(AIK,JSON.stringify(v));}catch(e){}}
+function aiModelList(){const dl=$('aiModels');dl.innerHTML='';(AI_MODELS[$('aiProv').value]||[]).forEach(m=>{const o=document.createElement('option');o.value=m;dl.append(o);});}
+/* The API key is never written anywhere: it stays in the input field until the tab is closed. Only the service and model names are remembered. */
+function aiLoad(){try{const v=JSON.parse(localStorage.getItem(AIK)||'{}');if(v.prov)$('aiProv').value=v.prov;$('aiModel').value=v.model&&!AI_OLD.includes(v.model)?v.model:AI_DEFAULT[$('aiProv').value];
+    if('key' in v)aiSave();/* an earlier version could store the key: erase it */}catch(e){$('aiModel').value=AI_DEFAULT.gemini;}aiModelList();}
+function aiSave(){try{localStorage.setItem(AIK,JSON.stringify({prov:$('aiProv').value,model:$('aiModel').value.trim()}));}catch(e){}}
+function scrubKey(t,key){t=String(t||'');if(key&&key.length>=6)t=t.split(key).join('[키 숨김]');return t.replace(/AIza[0-9A-Za-z_\-]{8,}/g,'[키 숨김]').replace(/sk-[A-Za-z0-9_\-*.]{8,}/g,'[키 숨김]');}
 function aiReady(){$('aiGen').disabled=aiBusy||!photoOrig||!$('aiKey').value.trim();
   if(!aiBusy&&!photoAI)aiStatus(!photoOrig?'먼저 위에서 얼굴 사진을 올리세요.':!$('aiKey').value.trim()?'API 키를 넣으면 버튼이 켜집니다.':'준비 완료. 버튼을 누르면 10~40초 정도 걸립니다.');}
-$('aiProv').addEventListener('change',()=>{$('aiModel').value=AI_DEFAULT[$('aiProv').value];$('aiKey').placeholder=$('aiProv').value==='gemini'?'Google AI Studio 키 (AIza...)':'OpenAI 키 (sk-...)';aiSave();aiReady();});
-['aiModel','aiKey'].forEach(id=>$(id).addEventListener('input',()=>{aiSave();aiReady();}));
-$('aiRemember').addEventListener('change',aiSave);
+$('aiProv').addEventListener('change',()=>{$('aiModel').value=AI_DEFAULT[$('aiProv').value];$('aiKey').placeholder=$('aiProv').value==='gemini'?'Google AI Studio 키 (AIza...)':'OpenAI 키 (sk-...)';aiModelList();aiSave();aiReady();});
+$('aiModel').addEventListener('input',()=>{aiSave();aiReady();});$('aiKey').addEventListener('input',aiReady);
 $('aiSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(b)useSource(b.dataset.src);});
 function photoBlob(img,max){const s=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
   c.getContext('2d').drawImage(img,0,0,c.width,c.height);return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('blob')),'image/jpeg',.9));}
 function blobB64(b){return new Promise((res,rej)=>{const r=new FileReader();r.onerror=()=>rej(r.error);r.onload=()=>res(String(r.result).split(',')[1]);r.readAsDataURL(b);});}
 function apiErr(status,msg){const e=new Error(msg||'');e.status=status;return e;}
-async function genGemini(key,model,blob,signal){
-  const body={contents:[{role:'user',parts:[{text:AI_PROMPT},{inline_data:{mime_type:'image/jpeg',data:await blobB64(blob)}}]}],generationConfig:{responseModalities:['TEXT','IMAGE']}};
-  const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent',{method:'POST',signal,headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body)});
-  const j=await r.json().catch(()=>({}));if(!r.ok)throw apiErr(r.status,j.error&&j.error.message);
+/* Requests carry the key in a header only (never in a URL), send no cookies or referrer, and go to the service's fixed official address. */
+const AI_NET={mode:'cors',credentials:'omit',cache:'no-store',referrerPolicy:'no-referrer',redirect:'error'};
+async function geminiCall(key,path,body,signal){const r=await fetch('https://generativelanguage.googleapis.com/v1beta/'+path,Object.assign({method:'POST',signal,headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body)},AI_NET));
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw apiErr(r.status,j.error&&j.error.message);return j;}
+/* first image found anywhere in a response, whichever of the two API shapes it has */
+function findImage(j){let hit=null;(function walk(o,d){if(hit||!o||typeof o!=='object'||d>9)return;if(Array.isArray(o)){o.forEach(x=>walk(x,d+1));return;}
+    const inl=o.inlineData||o.inline_data;if(inl&&typeof inl.data==='string'&&inl.data.length>200){hit={data:inl.data,mime:inl.mimeType||inl.mime_type};return;}
+    const mt=o.mime_type||o.mimeType;if(typeof o.data==='string'&&o.data.length>200&&(o.type==='image'||/^image\//.test(mt||''))){hit={data:o.data,mime:mt};return;}
+    Object.keys(o).forEach(k=>walk(o[k],d+1));})(j,0);return hit;}
+function findText(j){const t=[];(function walk(o,d){if(!o||typeof o!=='object'||d>9)return;if(typeof o.text==='string')t.push(o.text);Object.keys(o).forEach(k=>walk(o[k],d+1));})(j,0);return t.join(' ').slice(0,200);}
+async function genGemini(key,model,blob,signal){const data=await blobB64(blob);let j;
+  try{j=await geminiCall(key,'models/'+encodeURIComponent(model)+':generateContent',{contents:[{role:'user',parts:[{text:AI_PROMPT},{inline_data:{mime_type:'image/jpeg',data}}]}],generationConfig:{responseModalities:['TEXT','IMAGE']}},signal);}
+  catch(e){/* a model that Generate Content does not serve is tried once more through the Interactions API */
+    if(!(e.status===404||(e.status===400&&/not (found|supported)|unsupported|generateContent|interactions/i.test(e.message||''))))throw e;
+    try{j=await geminiCall(key,'interactions',{model,input:[{type:'text',text:AI_PROMPT},{type:'image',mime_type:'image/jpeg',data}]},signal);}
+    catch(e2){if(e2&&e2.name==='AbortError')throw e2;throw e2&&e2.status&&e2.status!==404?e2:e;}}
   if(j.promptFeedback&&j.promptFeedback.blockReason){const e=apiErr(0,j.promptFeedback.blockReason);e.refused=true;throw e;}
-  const c=j.candidates&&j.candidates[0];const parts=(c&&c.content&&c.content.parts)||[];const im=parts.find(p=>p.inlineData||p.inline_data);
-  if(!im){const e=apiErr(0,[c&&c.finishReason,parts.map(p=>p.text).filter(Boolean).join(' ')].filter(Boolean).join(': '));e.refused=true;throw e;}
-  const d=im.inlineData||im.inline_data;return 'data:'+(d.mimeType||d.mime_type||'image/png')+';base64,'+d.data;}
+  const im=findImage(j);
+  if(!im){const c=j.candidates&&j.candidates[0];const e=apiErr(0,[c&&c.finishReason,findText(j)].filter(Boolean).join(': '));e.refused=true;throw e;}
+  return 'data:'+(im.mime||'image/png')+';base64,'+im.data;}
 async function genOpenAI(key,model,blob,signal){
   const fd=new FormData();fd.append('model',model);fd.append('prompt',AI_PROMPT);fd.append('image',blob,'face.jpg');fd.append('size','1024x1024');if(model==='gpt-image-1')fd.append('input_fidelity','high');
-  const r=await fetch('https://api.openai.com/v1/images/edits',{method:'POST',signal,headers:{Authorization:'Bearer '+key},body:fd});
+  const r=await fetch('https://api.openai.com/v1/images/edits',Object.assign({method:'POST',signal,headers:{Authorization:'Bearer '+key},body:fd},AI_NET));
   const j=await r.json().catch(()=>({}));if(!r.ok){const e=apiErr(r.status,j.error&&j.error.message);if(j.error&&j.error.code==='moderation_blocked')e.refused=true;throw e;}
   const d=j.data&&j.data[0];if(!d||!d.b64_json){const e=apiErr(0,'이미지가 비어 있습니다');throw e;}return 'data:image/png;base64,'+d.b64_json;}
-function aiErrText(e){const m=e&&e.message?' ('+String(e.message).slice(0,160)+')':'';
+function aiErrText(e,key){const m=e&&e.message?' ('+scrubKey(e.message,key).slice(0,160)+')':'';
   if(e&&e.name==='AbortError')return '2분 넘게 응답이 없어 취소했습니다. 다시 시도해 주세요.';
   if(aiCsp||(e instanceof TypeError))return 'AI 서버에 연결하지 못했습니다. claude.ai 안에서 열었다면 보안 정책상 외부 호출이 막혀 있습니다. GitHub Pages 주소나 내려받은 파일로 열거나, 아래 "키 없이 하는 방법"을 쓰세요.';
   if(e.refused)return 'AI가 이 사진의 변환을 거절했습니다(안전 정책). 정면 얼굴이 잘 보이는 다른 사진으로 시도해 보세요.'+m;
@@ -557,7 +575,7 @@ $('aiGen').addEventListener('click',async()=>{if(aiBusy||!photoOrig)return;const
   const ctrl=new AbortController();const to=setTimeout(()=>ctrl.abort(),120000);
   try{const blob=await photoBlob(photoOrig,1024);const url=prov==='openai'?await genOpenAI(key,model,blob,ctrl.signal):await genGemini(key,model,blob,ctrl.signal);
     photoAI=await loadImg(url);useSource('ai');aiStatus('완성! 미리보기에서 눈과 입 위치가 점선에 맞는지 확인하세요.','ok');}
-  catch(e){aiStatus(aiErrText(e),'err');}
+  catch(e){aiStatus(aiErrText(e,key),'err');}
   finally{clearTimeout(to);aiBusy=false;$('aiGen').disabled=!photoOrig||!$('aiKey').value.trim();}});
 $('aiUp').addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{photoAI=await readImage(f);useSource('ai');aiStatus('AI 이미지를 적용했습니다. 미리보기에서 위치를 맞추세요.','ok');}catch(err){aiStatus('이미지를 읽지 못했습니다.','err');}});
 $('aiCopy').addEventListener('click',()=>{const ta=$('aiPrompt');const done=()=>aiStatus('프롬프트를 복사했습니다. Gemini나 ChatGPT에 사진과 함께 붙여넣으세요.','ok');
